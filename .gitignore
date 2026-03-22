@@ -1,2 +1,7 @@
-backend/.env 
-frontend/.env 
+node_modules/
+backend/.env
+backend/.env.txt
+frontend/.env
+.env
+.env.txt
+*.env
