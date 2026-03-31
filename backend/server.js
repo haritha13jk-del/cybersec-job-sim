@@ -4,8 +4,8 @@ const helmet = require('helmet');
 const morgan = require('morgan');
 const rateLimit = require('express-rate-limit');
 require('dotenv').config();
-console.log("API KEY LOADED:", process.env.GEMINI_API_KEY ? "YES - " + process.env.GEMINI_API_KEY.substring(0,10) + "..." : "NO - UNDEFINED");
 
+console.log(`AI: ${process.env.GEMINI_API_KEY ? 'Enabled' : 'Disabled'}`);
 
 const { mysqlPool, connectMongoDB } = require('./config/database');
 const authRoutes = require('./routes/auth');
