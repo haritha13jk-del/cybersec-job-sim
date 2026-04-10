@@ -1,10 +1,19 @@
+const path = require('path');
+require('dotenv').config({ path: path.join(__dirname, '../.env') });
 const mysql = require('mysql2/promise');
 const mongoose = require('mongoose');
-require('dotenv').config();
 
-/* ================= MYSQL CONNECTION (FINAL FIX) ================= */
+/* ================= MYSQL CONNECTION ================= */
 
-const mysqlPool = mysql.createPool(process.env.MYSQL_URL);
+const mysqlPool = mysql.createPool({
+  host: process.env.MYSQL_HOST,
+  user: process.env.MYSQL_USER,
+  password: process.env.MYSQL_PASSWORD,
+  database: process.env.MYSQL_DATABASE,
+  waitForConnections: true,
+  connectionLimit: 10,
+  queueLimit: 0
+});
 
 mysqlPool.getConnection()
   .then(connection => {
@@ -19,7 +28,7 @@ mysqlPool.getConnection()
 
 const connectMongoDB = async () => {
   try {
-    const mongoUri = process.env.MONGODB_URI || process.env.MONGO_URL;
+    const mongoUri = process.env.MONGODB_URI;
 
     console.log('MongoDB URI found:', mongoUri ? 'YES' : 'NO');
 
@@ -29,11 +38,10 @@ const connectMongoDB = async () => {
     }
 
     await mongoose.connect(mongoUri);
-
     console.log('✅ MongoDB Connected Successfully');
 
   } catch (error) {
-    console.error('MongoDB Connection Error:', error.message);
+    console.error('❌ MongoDB Connection Error:', error.message);
   }
 };
 

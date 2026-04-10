@@ -15,27 +15,52 @@ const aiRoutes = require('./routes/ai');
 
 const app = express();
 
+// 🔐 Security middleware
 app.use(helmet());
+
+// ✅ FIXED CORS (ALLOW NETLIFY + LOCAL)
 app.use(cors({
-  origin: process.env.FRONTEND_URL || 'http://localhost:3000',
+  origin: [
+    "http://localhost:3000",
+    "https://cybersecurityjobstimulation.netlify.app",
+    "https://69d915bf4b51b7239a805d5d--cybersecurityjobstimulation.netlify.app"
+  ],
   credentials: true
 }));
+
+// 🧾 Body parsing
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
+
+// 📊 Logging
 app.use(morgan('dev'));
 
+// 🚫 Rate limiting
 const limiter = rateLimit({
-  windowMs: parseInt(process.env.RATE_LIMIT_WINDOW) * 60 * 1000,
-  max: parseInt(process.env.RATE_LIMIT_MAX),
+  windowMs: (parseInt(process.env.RATE_LIMIT_WINDOW) || 15) * 60 * 1000,
+  max: parseInt(process.env.RATE_LIMIT_MAX) || 100,
   message: 'Too many requests from this IP, please try again later.'
 });
 app.use('/api/', limiter);
 
+
+// ================= ROUTES =================
+
+// Root route
+app.get('/', (req, res) => {
+  res.json({
+    success: true,
+    message: 'Cybersecurity Job Simulation Backend Running 🚀'
+  });
+});
+
+// API routes
 app.use('/api/auth', authRoutes);
 app.use('/api/scenarios', scenarioRoutes);
 app.use('/api/progress', progressRoutes);
 app.use('/api/ai', aiRoutes);
 
+// Health check
 app.get('/api/health', (req, res) => {
   res.json({
     success: true,
@@ -45,26 +70,42 @@ app.get('/api/health', (req, res) => {
   });
 });
 
+
+// ================= ERROR HANDLING =================
+
+// 404 handler
 app.use((req, res) => {
-  res.status(404).json({ success: false, error: 'Endpoint not found' });
+  res.status(404).json({
+    success: false,
+    error: 'Endpoint not found'
+  });
 });
 
+// Global error handler
 app.use((err, req, res, next) => {
   console.error('Server error:', err);
-  res.status(500).json({ success: false, error: 'Internal server error' });
+  res.status(500).json({
+    success: false,
+    error: 'Internal server error'
+  });
 });
+
+
+// ================= SERVER START =================
 
 const PORT = process.env.PORT || 5000;
 
 const startServer = async () => {
   try {
+
     await connectMongoDB();
     await mysqlPool.getConnection();
+
     app.listen(PORT, () => {
       console.log('========================================');
       console.log(' CYBERSECURITY JOB SIMULATION SYSTEM');
       console.log('========================================');
-      console.log(` Server running on: http://localhost:${PORT}`);
+      console.log(` Server running on port: ${PORT}`);
       console.log(` Environment: ${process.env.NODE_ENV}`);
       console.log(` MySQL: Connected`);
       console.log(` MongoDB: Connected`);
@@ -72,6 +113,7 @@ const startServer = async () => {
       console.log('========================================');
       console.log(' All systems operational!');
     });
+
   } catch (error) {
     console.error('Server startup error:', error);
     process.exit(1);
