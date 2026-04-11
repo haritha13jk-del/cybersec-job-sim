@@ -489,4 +489,4 @@ export default function ScenarioDetail() {
       </div>
     </div>
   );
-}s
+}
