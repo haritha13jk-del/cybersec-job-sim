@@ -64,28 +64,28 @@ export default function Profile() {
   };
 
   const styles = {
-    page: { minHeight: '100vh', background: '#0a0e1a', color: '#e2e8f0' },
+    page: { minHeight: '100vh', background: '#f8f9fa', color: '#1a202c' },
     container: { maxWidth: '1000px', margin: '0 auto', padding: '2rem 1.5rem' },
-    header: { display: 'flex', alignItems: 'center', gap: '1.5rem', marginBottom: '2rem', background: 'linear-gradient(135deg, #1a1f35, #0d1117)', border: '1px solid #2d3748', borderRadius: '12px', padding: '1.5rem' },
+    header: { display: 'flex', alignItems: 'center', gap: '1.5rem', marginBottom: '2rem', background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '12px', padding: '1.5rem', boxShadow: '0 1px 3px rgba(0,0,0,0.08)' },
     avatar: { width: '80px', height: '80px', borderRadius: '50%', background: 'linear-gradient(135deg, #667eea, #764ba2)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '2rem', fontWeight: 'bold', color: 'white', flexShrink: 0 },
-    username: { fontSize: '1.5rem', fontWeight: 'bold', color: '#e2e8f0', margin: 0 },
+    username: { fontSize: '1.5rem', fontWeight: 'bold', color: '#1a202c', margin: 0 },
     email: { color: '#718096', margin: '0.25rem 0 0' },
-    editBtn: { marginLeft: 'auto', padding: '0.5rem 1.2rem', background: editing ? '#4a5568' : 'linear-gradient(135deg, #667eea, #764ba2)', color: 'white', border: 'none', borderRadius: '8px', cursor: 'pointer', fontWeight: '600' },
+    editBtn: { marginLeft: 'auto', padding: '0.5rem 1.2rem', background: editing ? '#e2e8f0' : 'linear-gradient(135deg, #667eea, #764ba2)', color: editing ? '#4a5568' : 'white', border: 'none', borderRadius: '8px', cursor: 'pointer', fontWeight: '600' },
     statsGrid: { display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '1rem', marginBottom: '2rem' },
-    statCard: { background: '#1a1f35', border: '1px solid #2d3748', borderRadius: '10px', padding: '1.2rem', textAlign: 'center' },
+    statCard: { background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '10px', padding: '1.2rem', textAlign: 'center', boxShadow: '0 1px 3px rgba(0,0,0,0.06)' },
     statNum: { fontSize: '1.8rem', fontWeight: 'bold', color: '#667eea' },
     statLabel: { color: '#718096', fontSize: '0.85rem', marginTop: '0.25rem' },
-    section: { background: '#1a1f35', border: '1px solid #2d3748', borderRadius: '12px', padding: '1.5rem', marginBottom: '1.5rem' },
-    sectionTitle: { fontSize: '1.1rem', fontWeight: 'bold', color: '#e2e8f0', marginBottom: '1rem', paddingBottom: '0.5rem', borderBottom: '1px solid #2d3748' },
+    section: { background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '12px', padding: '1.5rem', marginBottom: '1.5rem', boxShadow: '0 1px 3px rgba(0,0,0,0.06)' },
+    sectionTitle: { fontSize: '1.1rem', fontWeight: 'bold', color: '#1a202c', marginBottom: '1rem', paddingBottom: '0.5rem', borderBottom: '1px solid #e2e8f0' },
     editForm: { display: 'flex', flexDirection: 'column', gap: '1rem' },
-    input: { padding: '0.75rem 1rem', background: '#0d1117', border: '1px solid #4a5568', borderRadius: '8px', color: '#e2e8f0', fontSize: '1rem', outline: 'none' },
-    label: { color: '#a0aec0', fontSize: '0.85rem', marginBottom: '0.25rem' },
+    input: { padding: '0.75rem 1rem', background: '#f8f9fa', border: '1px solid #cbd5e0', borderRadius: '8px', color: '#1a202c', fontSize: '1rem', outline: 'none' },
+    label: { color: '#4a5568', fontSize: '0.85rem', marginBottom: '0.25rem' },
     saveBtn: { padding: '0.75rem', background: 'linear-gradient(135deg, #667eea, #764ba2)', color: 'white', border: 'none', borderRadius: '8px', cursor: 'pointer', fontWeight: '600', fontSize: '1rem' },
-    cancelBtn: { padding: '0.75rem', background: '#2d3748', color: '#e2e8f0', border: 'none', borderRadius: '8px', cursor: 'pointer', fontWeight: '600' },
+    cancelBtn: { padding: '0.75rem', background: '#e2e8f0', color: '#4a5568', border: 'none', borderRadius: '8px', cursor: 'pointer', fontWeight: '600' },
     msgBox: { padding: '0.75rem 1rem', borderRadius: '8px', marginBottom: '1rem', fontWeight: '500' },
-    historyItem: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '0.9rem 1rem', background: '#0d1117', borderRadius: '8px', marginBottom: '0.5rem', border: '1px solid #2d3748' },
+    historyItem: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '0.9rem 1rem', background: '#f8f9fa', borderRadius: '8px', marginBottom: '0.5rem', border: '1px solid #e2e8f0' },
     badge: { padding: '0.2rem 0.6rem', borderRadius: '20px', fontSize: '0.75rem', fontWeight: '600', color: 'white' },
-    scoreBar: { height: '6px', borderRadius: '3px', background: '#2d3748', marginTop: '0.4rem', width: '120px' },
+    scoreBar: { height: '6px', borderRadius: '3px', background: '#e2e8f0', marginTop: '0.4rem', width: '120px' },
     empty: { textAlign: 'center', color: '#718096', padding: '2rem' }
   };
 
@@ -108,7 +108,7 @@ export default function Profile() {
         </div>
 
         {message && (
-          <div style={{ ...styles.msgBox, background: msgType === 'success' ? '#1a3a2a' : '#3a1a1a', border: `1px solid ${msgType === 'success' ? '#27ae60' : '#e74c3c'}`, color: msgType === 'success' ? '#27ae60' : '#e74c3c' }}>
+          <div style={{ ...styles.msgBox, background: msgType === 'success' ? '#f0fff4' : '#fff5f5', border: `1px solid ${msgType === 'success' ? '#27ae60' : '#e74c3c'}`, color: msgType === 'success' ? '#27ae60' : '#e74c3c' }}>
             {message}
           </div>
         )}
@@ -162,7 +162,7 @@ export default function Profile() {
             progress.map((item, i) => (
               <div key={i} style={styles.historyItem}>
                 <div style={{ flex: 1 }}>
-                  <div style={{ fontWeight: '600', color: '#e2e8f0', marginBottom: '0.25rem' }}>{item.title}</div>
+                  <div style={{ fontWeight: '600', color: '#1a202c', marginBottom: '0.25rem' }}>{item.title}</div>
                   <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
                     <span style={{ ...styles.badge, background: getDifficultyColor(item.difficulty) }}>{item.difficulty}</span>
                     <span style={{ color: '#718096', fontSize: '0.8rem' }}>{item.role}</span>
