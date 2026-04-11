@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { progressAPI, authAPI } from '../services/api';
 import Navbar from '../components/Navbar';
 
@@ -13,24 +13,25 @@ export default function Profile() {
 
   const user = JSON.parse(localStorage.getItem('user') || '{}');
 
+  const fetchData = useCallback(async () => {
+    try {
+      const res = await progressAPI.getProgress();
+      setProgress(res.data.progress || []);
+      setStats(res.data.stats || {});
+      setFormData({
+        full_name: user?.fullName || '',
+        username: user?.username || ''
+      });
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setLoading(false);
+    }
+  }, [user?.fullName, user?.username]); // eslint-disable-line react-hooks/exhaustive-deps
+
   useEffect(() => {
-    const fetchData = async () => {
-      try {
-        const res = await progressAPI.getProgress();
-        setProgress(res.data.progress || []);
-        setStats(res.data.stats || {});
-        setFormData({
-          full_name: user?.fullName || '',
-          username: user?.username || ''
-        });
-      } catch (err) {
-        console.error(err);
-      } finally {
-        setLoading(false);
-      }
-    };
     fetchData();
-  }, []);
+  }, [fetchData]);
 
   const handleUpdate = async () => {
     try {
@@ -93,7 +94,6 @@ export default function Profile() {
       <Navbar />
       <div style={styles.container}>
 
-        {/* Header */}
         <div style={styles.header}>
           <div style={styles.avatar}>
             {(user?.fullName || user?.username || 'U')[0].toUpperCase()}
@@ -107,14 +107,12 @@ export default function Profile() {
           </button>
         </div>
 
-        {/* Message */}
         {message && (
           <div style={{ ...styles.msgBox, background: msgType === 'success' ? '#1a3a2a' : '#3a1a1a', border: `1px solid ${msgType === 'success' ? '#27ae60' : '#e74c3c'}`, color: msgType === 'success' ? '#27ae60' : '#e74c3c' }}>
             {message}
           </div>
         )}
 
-        {/* Edit Form */}
         {editing && (
           <div style={styles.section}>
             <div style={styles.sectionTitle}>Edit Profile</div>
@@ -135,7 +133,6 @@ export default function Profile() {
           </div>
         )}
 
-        {/* Stats */}
         {!loading && (
           <div style={styles.statsGrid}>
             {[
@@ -152,7 +149,6 @@ export default function Profile() {
           </div>
         )}
 
-        {/* History */}
         <div style={styles.section}>
           <div style={styles.sectionTitle}>📋 Scenario History</div>
           {loading ? (
