@@ -82,7 +82,7 @@ export default function ScenarioDetail() {
     try {
       const res = await aiAPI.getHint(parseInt(id));
       setHintsUsed(prev => prev + 1);
-      setChatMessages(prev => [...prev, { role: 'ai', content: `💡 Hint #${res.data.hintNumber}: ${res.data.hint}` }]);
+      setChatMessages(prev => [...prev, { role: 'ai', content: 'Hint #' + res.data.hintNumber + ': ' + res.data.hint }]);
       setActiveTab('ai');
     } catch (err) {
       console.error('Failed to get hint:', err);
@@ -94,7 +94,7 @@ export default function ScenarioDetail() {
   const formatTime = (seconds) => {
     const m = Math.floor(seconds / 60);
     const s = seconds % 60;
-    return `${m}:${s.toString().padStart(2, '0')}`;
+    return m + ':' + s.toString().padStart(2, '0');
   };
 
   const getActionLabel = (action) => {
@@ -150,22 +150,21 @@ export default function ScenarioDetail() {
       <Navbar />
       <div className="container" style={{ padding: '24px', maxWidth: '1300px', margin: '0 auto' }}>
 
-        {/* Top Bar */}
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
           <button className="btn btn-secondary" onClick={() => navigate('/scenarios')}
             style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '13px' }}>
-            ← Back to Scenarios
+            Back to Scenarios
           </button>
           <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
             {!submitted && (
               <div style={{
                 padding: '8px 18px', borderRadius: '8px', fontWeight: '700', fontSize: '15px',
                 background: timeLeft < 60 ? '#fff5f5' : '#f0fff4',
-                border: `1px solid ${timeLeft < 60 ? '#feb2b2' : '#9ae6b4'}`,
+                border: '1px solid ' + (timeLeft < 60 ? '#feb2b2' : '#9ae6b4'),
                 color: timeLeft < 60 ? '#c53030' : '#276749',
                 display: 'flex', alignItems: 'center', gap: '6px'
               }}>
-                ⏱ {formatTime(timeLeft)}
+                {formatTime(timeLeft)}
               </div>
             )}
             <div style={{ padding: '8px 14px', background: '#ebf8ff', border: '1px solid #bee3f8', borderRadius: '8px', fontSize: '13px', fontWeight: '600', color: '#2b6cb0' }}>
@@ -175,10 +174,7 @@ export default function ScenarioDetail() {
         </div>
 
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 380px', gap: '24px', alignItems: 'start' }}>
-
-          {/* Left Panel */}
           <div>
-            {/* Header Card */}
             <div className="card" style={{ marginBottom: '16px', borderLeft: '4px solid #3182ce' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
                 <div style={{ flex: 1 }}>
@@ -186,10 +182,10 @@ export default function ScenarioDetail() {
                     {scenario.title}
                   </h1>
                   <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', alignItems: 'center' }}>
-                    <span style={{ padding: '4px 12px', borderRadius: '20px', fontSize: '12px', fontWeight: '700', letterSpacing: '0.03em', background: diffStyle.bg, color: diffStyle.color, border: `1px solid ${diffStyle.border}` }}>
-                      {scenario.difficulty?.toUpperCase()}
+                    <span style={{ padding: '4px 12px', borderRadius: '20px', fontSize: '12px', fontWeight: '700', background: diffStyle.bg, color: diffStyle.color, border: '1px solid ' + diffStyle.border }}>
+                      {scenario.difficulty ? scenario.difficulty.toUpperCase() : ''}
                     </span>
-                    <span style={{ padding: '4px 12px', borderRadius: '20px', fontSize: '12px', fontWeight: '700', background: roleStyle.bg, color: roleStyle.color, border: `1px solid ${roleStyle.border}` }}>
+                    <span style={{ padding: '4px 12px', borderRadius: '20px', fontSize: '12px', fontWeight: '700', background: roleStyle.bg, color: roleStyle.color, border: '1px solid ' + roleStyle.border }}>
                       {getRoleLabel(scenario.role)}
                     </span>
                     {scenario.category && (
@@ -199,40 +195,37 @@ export default function ScenarioDetail() {
                     )}
                     {scenario.mitre_technique && (
                       <span style={{ padding: '4px 12px', borderRadius: '20px', fontSize: '12px', fontWeight: '600', background: '#fff8f0', color: '#c05621', border: '1px solid #fbd38d' }}>
-                        🔗 {scenario.mitre_technique}
+                        {scenario.mitre_technique}
                       </span>
                     )}
                   </div>
                 </div>
                 <div style={{ textAlign: 'center', marginLeft: '20px', background: '#ebf8ff', borderRadius: '12px', padding: '12px 20px', border: '1px solid #bee3f8' }}>
                   <div style={{ fontSize: '28px', fontWeight: '900', color: '#3182ce' }}>{scenario.max_score}</div>
-                  <div style={{ fontSize: '11px', color: '#718096', fontWeight: '600', letterSpacing: '0.05em' }}>MAX SCORE</div>
+                  <div style={{ fontSize: '11px', color: '#718096', fontWeight: '600' }}>MAX SCORE</div>
                 </div>
               </div>
             </div>
 
-            {/* Tabs */}
             <div className="card" style={{ padding: '0' }}>
               <div style={{ display: 'flex', borderBottom: '2px solid #e2e8f0' }}>
                 {['scenario', 'data', submitted ? 'results' : null].filter(Boolean).map(tab => (
                   <button key={tab} onClick={() => setActiveTab(tab)} style={{
                     padding: '14px 24px', border: 'none', background: 'none', cursor: 'pointer',
-                    fontWeight: '700', fontSize: '13px', letterSpacing: '0.03em',
+                    fontWeight: '700', fontSize: '13px',
                     color: activeTab === tab ? '#3182ce' : '#718096',
                     borderBottom: activeTab === tab ? '3px solid #3182ce' : '3px solid transparent',
-                    marginBottom: '-2px', transition: 'all 0.15s', textTransform: 'uppercase'
+                    marginBottom: '-2px', textTransform: 'uppercase'
                   }}>
-                    {tab === 'scenario' ? '📋 Scenario' : tab === 'data' ? '📊 Evidence' : '🏆 Results'}
+                    {tab === 'scenario' ? 'Scenario' : tab === 'data' ? 'Evidence' : 'Results'}
                   </button>
                 ))}
               </div>
 
               <div style={{ padding: '24px' }}>
 
-                {/* SCENARIO TAB */}
                 {activeTab === 'scenario' && (
                   <div>
-                    {/* Objective Box */}
                     <div style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '10px', padding: '16px 20px', marginBottom: '28px' }}>
                       <div style={{ fontSize: '11px', fontWeight: '800', color: '#718096', letterSpacing: '0.08em', marginBottom: '6px', textTransform: 'uppercase' }}>
                         Mission Objective
@@ -242,7 +235,6 @@ export default function ScenarioDetail() {
                       </p>
                     </div>
 
-                    {/* MCQ Section */}
                     <div style={{ marginBottom: '8px' }}>
                       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px' }}>
                         <h3 style={{ fontSize: '15px', fontWeight: '800', color: '#1a202c' }}>
@@ -259,7 +251,7 @@ export default function ScenarioDetail() {
                       <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginBottom: '24px' }}>
                         {allOptions.map((label, index) => {
                           const isSelected = selectedActions.includes(label);
-                          const letter = String.fromCharCode(65 + index); // A, B, C...
+                          const letter = String.fromCharCode(65 + index);
                           return (
                             <div
                               key={label}
@@ -267,7 +259,7 @@ export default function ScenarioDetail() {
                               style={{
                                 display: 'flex', alignItems: 'center', gap: '14px',
                                 padding: '13px 16px',
-                                border: `2px solid ${isSelected ? '#3182ce' : '#e2e8f0'}`,
+                                border: '2px solid ' + (isSelected ? '#3182ce' : '#e2e8f0'),
                                 borderRadius: '10px',
                                 cursor: submitted ? 'default' : 'pointer',
                                 background: isSelected ? '#ebf8ff' : '#ffffff',
@@ -275,17 +267,16 @@ export default function ScenarioDetail() {
                                 boxShadow: isSelected ? '0 0 0 3px rgba(49,130,206,0.1)' : 'none'
                               }}
                             >
-                              {/* Letter Badge */}
                               <div style={{
                                 width: '28px', height: '28px', borderRadius: '6px', flexShrink: 0,
                                 display: 'flex', alignItems: 'center', justifyContent: 'center',
                                 fontWeight: '800', fontSize: '12px',
                                 background: isSelected ? '#3182ce' : '#f7fafc',
                                 color: isSelected ? 'white' : '#718096',
-                                border: `2px solid ${isSelected ? '#3182ce' : '#e2e8f0'}`,
+                                border: '2px solid ' + (isSelected ? '#3182ce' : '#e2e8f0'),
                                 transition: 'all 0.15s'
                               }}>
-                                {isSelected ? '✓' : letter}
+                                {isSelected ? 'v' : letter}
                               </div>
                               <span style={{ fontSize: '14px', color: isSelected ? '#1a202c' : '#4a5568', fontWeight: isSelected ? '600' : '400', flex: 1 }}>
                                 {label}
@@ -296,7 +287,6 @@ export default function ScenarioDetail() {
                       </div>
                     </div>
 
-                    {/* Submit */}
                     {!submitted && (
                       <div style={{ display: 'flex', gap: '12px', paddingTop: '4px', borderTop: '1px solid #e2e8f0' }}>
                         <button
@@ -313,24 +303,22 @@ export default function ScenarioDetail() {
                           disabled={chatLoading}
                           style={{ padding: '13px 20px', fontWeight: '600' }}
                         >
-                          💡 Get Hint
+                          Get Hint
                         </button>
                       </div>
                     )}
                   </div>
                 )}
 
-                {/* EVIDENCE TAB */}
                 {activeTab === 'data' && (
                   <div>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '16px' }}>
                       <div style={{ width: '4px', height: '20px', background: '#3182ce', borderRadius: '2px' }} />
                       <h3 style={{ fontSize: '15px', fontWeight: '800', color: '#1a202c' }}>
-                        Scenario Evidence & Data
+                        Scenario Evidence and Data
                       </h3>
                     </div>
-                    <div style={{ background: '#0f1117', borderRadius: '12px', padding: '20px', fontFamily: '"Courier New", monospace', fontSize: '13px', color: '#7ee787', overflowX: 'auto', lineHeight: '1.8', border: '1px solid #2d3748' }}>
-                      <div style={{ color: '#8b949e', fontSize: '11px', marginBottom: '10px', letterSpacing: '0.1em' }}>// CLASSIFIED INCIDENT DATA — ANALYST ACCESS ONLY</div>
+                    <div style={{ background: '#0f1117', borderRadius: '12px', padding: '20px', fontFamily: 'monospace', fontSize: '13px', color: '#7ee787', overflowX: 'auto', lineHeight: '1.8', border: '1px solid #2d3748' }}>
                       <pre style={{ margin: 0, whiteSpace: 'pre-wrap', wordBreak: 'break-word' }}>
                         {JSON.stringify(scenario.scenario_data, null, 2)}
                       </pre>
@@ -338,19 +326,14 @@ export default function ScenarioDetail() {
                   </div>
                 )}
 
-                {/* RESULTS TAB */}
                 {activeTab === 'results' && results && (
                   <div>
-                    {/* Score Banner */}
                     <div style={{
                       textAlign: 'center', padding: '28px',
                       background: results.allCorrect ? 'linear-gradient(135deg, #f0fff4, #c6f6d5)' : results.percentage >= 70 ? 'linear-gradient(135deg, #fffbeb, #fefcbf)' : 'linear-gradient(135deg, #fff5f5, #fed7d7)',
                       borderRadius: '14px', marginBottom: '24px',
-                      border: `1px solid ${results.allCorrect ? '#9ae6b4' : results.percentage >= 70 ? '#fbd38d' : '#feb2b2'}`
+                      border: '1px solid ' + (results.allCorrect ? '#9ae6b4' : results.percentage >= 70 ? '#fbd38d' : '#feb2b2')
                     }}>
-                      <div style={{ fontSize: '40px', marginBottom: '8px' }}>
-                        {results.allCorrect ? '🏆' : results.percentage >= 70 ? '✅' : '📋'}
-                      </div>
                       <div style={{ fontSize: '52px', fontWeight: '900', color: '#1a202c', lineHeight: 1 }}>
                         {results.score}
                       </div>
@@ -360,11 +343,10 @@ export default function ScenarioDetail() {
                         background: results.allCorrect ? '#276749' : results.percentage >= 70 ? '#744210' : '#c53030',
                         color: 'white'
                       }}>
-                        {results.allCorrect ? '🎉 Perfect Score!' : `${Math.round(results.percentage)}% Accuracy`}
+                        {results.allCorrect ? 'Perfect Score!' : Math.round(results.percentage) + '% Accuracy'}
                       </div>
                     </div>
 
-                    {/* Correct Actions */}
                     <div style={{ marginBottom: '20px' }}>
                       <div style={{ fontSize: '12px', fontWeight: '800', color: '#718096', letterSpacing: '0.08em', marginBottom: '10px', textTransform: 'uppercase' }}>
                         Your Answers
@@ -374,10 +356,9 @@ export default function ScenarioDetail() {
                           <div key={index} style={{
                             padding: '11px 16px', borderRadius: '8px',
                             background: item.correct ? '#f0fff4' : '#fff5f5',
-                            border: `1px solid ${item.correct ? '#9ae6b4' : '#feb2b2'}`,
+                            border: '1px solid ' + (item.correct ? '#9ae6b4' : '#feb2b2'),
                             display: 'flex', alignItems: 'center', gap: '12px'
                           }}>
-                            <span style={{ fontSize: '16px' }}>{item.correct ? '✅' : '❌'}</span>
                             <span style={{ fontSize: '13px', fontWeight: '600', color: '#2d3748' }}>
                               {getActionLabel(item.action)}
                             </span>
@@ -389,11 +370,10 @@ export default function ScenarioDetail() {
                       </div>
                     </div>
 
-                    {/* Missed */}
                     {results.missingActions.length > 0 && (
                       <div style={{ marginBottom: '20px' }}>
                         <div style={{ fontSize: '12px', fontWeight: '800', color: '#718096', letterSpacing: '0.08em', marginBottom: '10px', textTransform: 'uppercase' }}>
-                          ⚠️ Actions You Missed
+                          Actions You Missed
                         </div>
                         <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
                           {results.missingActions.map((action, index) => (
@@ -402,7 +382,6 @@ export default function ScenarioDetail() {
                               background: '#fffbeb', border: '1px solid #fbd38d',
                               display: 'flex', alignItems: 'center', gap: '12px'
                             }}>
-                              <span>⚠️</span>
                               <span style={{ fontSize: '13px', color: '#744210', fontWeight: '500' }}>
                                 {getActionLabel(action)}
                               </span>
@@ -414,7 +393,7 @@ export default function ScenarioDetail() {
 
                     <button className="btn btn-primary" onClick={() => navigate('/scenarios')}
                       style={{ width: '100%', padding: '13px', fontSize: '14px', fontWeight: '700' }}>
-                      Try Another Scenario →
+                      Try Another Scenario
                     </button>
                   </div>
                 )}
@@ -422,11 +401,10 @@ export default function ScenarioDetail() {
             </div>
           </div>
 
-          {/* AI Assistant Panel */}
           <div className="card" style={{ height: 'fit-content', position: 'sticky', top: '80px', padding: '20px' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '4px' }}>
-              <div style={{ width: '36px', height: '36px', borderRadius: '50%', background: 'linear-gradient(135deg, #667eea, #764ba2)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '18px' }}>
-                🤖
+              <div style={{ width: '36px', height: '36px', borderRadius: '50%', background: 'linear-gradient(135deg, #667eea, #764ba2)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white', fontWeight: '800', fontSize: '12px' }}>
+                AI
               </div>
               <div>
                 <h3 style={{ fontSize: '15px', fontWeight: '800', color: '#1a202c', margin: 0 }}>AI Security Assistant</h3>
@@ -439,21 +417,20 @@ export default function ScenarioDetail() {
             <div style={{ height: '340px', overflowY: 'auto', marginBottom: '12px', display: 'flex', flexDirection: 'column', gap: '10px', padding: '2px' }}>
               {chatMessages.length === 0 ? (
                 <div style={{ textAlign: 'center', padding: '40px 16px', color: '#a0aec0' }}>
-                  <div style={{ fontSize: '48px', marginBottom: '12px' }}>🤖</div>
                   <p style={{ fontSize: '13px', fontWeight: '600', color: '#718096' }}>Ask me anything about this scenario!</p>
-                  <p style={{ fontSize: '12px', marginTop: '4px', color: '#a0aec0' }}>Or click "Get Hint" for guidance</p>
+                  <p style={{ fontSize: '12px', marginTop: '4px', color: '#a0aec0' }}>Or click Get Hint for guidance</p>
                 </div>
               ) : (
                 chatMessages.map((msg, index) => (
                   <div key={index} style={{
                     padding: '10px 13px', borderRadius: '10px',
                     background: msg.role === 'user' ? '#ebf8ff' : '#f7fafc',
-                    border: `1px solid ${msg.role === 'user' ? '#bee3f8' : '#e2e8f0'}`,
+                    border: '1px solid ' + (msg.role === 'user' ? '#bee3f8' : '#e2e8f0'),
                     alignSelf: msg.role === 'user' ? 'flex-end' : 'flex-start',
                     maxWidth: '92%'
                   }}>
                     <div style={{ fontSize: '10px', fontWeight: '800', color: msg.role === 'user' ? '#2b6cb0' : '#4a5568', marginBottom: '5px', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
-                      {msg.role === 'user' ? '👤 You' : '🤖 AI Assistant'}
+                      {msg.role === 'user' ? 'You' : 'AI Assistant'}
                     </div>
                     <div style={{ fontSize: '13px', color: '#2d3748', lineHeight: '1.6' }}>
                       {msg.content}
@@ -463,7 +440,7 @@ export default function ScenarioDetail() {
               )}
               {chatLoading && (
                 <div style={{ padding: '10px 13px', borderRadius: '10px', background: '#f7fafc', border: '1px solid #e2e8f0', alignSelf: 'flex-start' }}>
-                  <div style={{ fontSize: '13px', color: '#718096' }}>🤖 Thinking...</div>
+                  <div style={{ fontSize: '13px', color: '#718096' }}>Thinking...</div>
                 </div>
               )}
             </div>
@@ -490,4 +467,3 @@ export default function ScenarioDetail() {
     </div>
   );
 }
-
