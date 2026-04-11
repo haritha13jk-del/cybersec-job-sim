@@ -38,12 +38,17 @@ export default function Scenarios() {
     }
   };
 
+  // ✅ Fixed: matches exact DB values "SOC Analyst" and "Penetration Tester"
   const getRoleIcon = (role) => {
-    return role === 'soc_analyst' ? '🔍' : '⚔️';
+    return role === 'SOC Analyst' ? '🔍' : '⚔️';
   };
 
   const getRoleLabel = (role) => {
-    return role === 'soc_analyst' ? 'SOC Analyst' : 'Penetration Tester';
+    return role === 'SOC Analyst' ? 'SOC Analyst' : 'Penetration Tester';
+  };
+
+  const getRoleBadgeClass = (role) => {
+    return role === 'SOC Analyst' ? 'badge-soc' : 'badge-pentest';
   };
 
   return (
@@ -68,8 +73,8 @@ export default function Scenarios() {
                 onChange={(e) => setFilter({ ...filter, role: e.target.value })}
               >
                 <option value="">All Roles</option>
-                <option value="soc_analyst">SOC Analyst</option>
-                <option value="penetration_tester">Penetration Tester</option>
+                <option value="SOC Analyst">SOC Analyst</option>
+                <option value="Penetration Tester">Penetration Tester</option>
               </select>
             </div>
             <div>
@@ -133,7 +138,7 @@ export default function Scenarios() {
                       <span className={`badge badge-${colors.badge}`}>
                         {scenario.difficulty.charAt(0).toUpperCase() + scenario.difficulty.slice(1)}
                       </span>
-                      <span className={`badge ${scenario.role === 'soc_analyst' ? 'badge-soc' : 'badge-pentest'}`}>
+                      <span className={`badge ${getRoleBadgeClass(scenario.role)}`}>
                         {getRoleLabel(scenario.role)}
                       </span>
                     </div>
