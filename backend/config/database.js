@@ -1,28 +1,38 @@
 const path = require('path');
 require('dotenv').config({ path: path.join(__dirname, '../.env') });
+
 const mysql = require('mysql2/promise');
 const mongoose = require('mongoose');
 
 /* ================= MYSQL CONNECTION ================= */
 
-const mysqlPool = mysql.createPool({
-  host: process.env.MYSQL_HOST,
-  user: process.env.MYSQL_USER,
-  password: process.env.MYSQL_PASSWORD,
-  database: process.env.MYSQL_DATABASE,
+const mysqlConfig = {
+  host: process.env.MYSQL_HOST || 'localhost',
+  user: process.env.MYSQL_USER || 'root',
+  password: process.env.MYSQL_PASSWORD || '',
+  database: process.env.MYSQL_DATABASE || '',
   waitForConnections: true,
   connectionLimit: 10,
   queueLimit: 0
-});
+};
 
-mysqlPool.getConnection()
-  .then(connection => {
+// 🔍 Debug log (IMPORTANT)
+console.log('MySQL Config:', mysqlConfig);
+
+// ✅ Create pool safely
+const mysqlPool = mysql.createPool(mysqlConfig);
+
+// ✅ Test connection
+const testMySQL = async () => {
+  try {
+    const connection = await mysqlPool.getConnection();
     console.log('✅ MySQL Connected Successfully');
     connection.release();
-  })
-  .catch(err => {
-    console.error('❌ MySQL Connection Error:', err.message);
-  });
+  } catch (error) {
+    console.error('❌ MySQL Connection Error:', error.message);
+    throw error;
+  }
+};
 
 /* ================= MONGODB CONNECTION ================= */
 
@@ -30,11 +40,8 @@ const connectMongoDB = async () => {
   try {
     const mongoUri = process.env.MONGODB_URI;
 
-    console.log('MongoDB URI found:', mongoUri ? 'YES' : 'NO');
-
     if (!mongoUri) {
-      console.error('❌ No MongoDB URI found!');
-      return;
+      throw new Error('MongoDB URI missing');
     }
 
     await mongoose.connect(mongoUri);
@@ -42,9 +49,12 @@ const connectMongoDB = async () => {
 
   } catch (error) {
     console.error('❌ MongoDB Connection Error:', error.message);
+    throw error;
   }
 };
 
-/* ================= EXPORT ================= */
-
-module.exports = { mysqlPool, connectMongoDB };
+module.exports = {
+  mysqlPool,
+  testMySQL,
+  connectMongoDB
+};

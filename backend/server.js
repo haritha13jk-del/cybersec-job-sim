@@ -7,7 +7,7 @@ require('dotenv').config();
 
 console.log(`AI: ${process.env.GEMINI_API_KEY ? 'Enabled' : 'Disabled'}`);
 
-const { mysqlPool, connectMongoDB } = require('./config/database');
+const { connectMongoDB, testMySQL } = require('./config/database');
 const authRoutes = require('./routes/auth');
 const scenarioRoutes = require('./routes/scenarios');
 const progressRoutes = require('./routes/progress');
@@ -18,17 +18,27 @@ const app = express();
 // 🔐 Security
 app.use(helmet());
 
-// ✅ ✅ FINAL CORS FIX (NO FUNCTION = NO FAILURE)
+// ✅ FINAL CORS FIX (WORKS FOR NETLIFY + LOCAL)
+const allowedOrigins = [
+  "http://localhost:3000",
+  "https://cybersecurityjobstimulation.netlify.app"
+];
+
 app.use(cors({
-  origin: [
-    "http://localhost:3000",
-    "https://cybersecurityjobstimulation.netlify.app",
-    /\.netlify\.app$/ // allow ALL Netlify deploy previews
-  ],
+  origin: (origin, callback) => {
+    // allow requests with no origin (Postman, mobile apps)
+    if (!origin) return callback(null, true);
+
+    if (allowedOrigins.includes(origin) || origin.endsWith('.netlify.app')) {
+      return callback(null, true);
+    }
+
+    return callback(new Error("Not allowed by CORS"));
+  },
   credentials: true
 }));
 
-// 🔥 IMPORTANT: Handle preflight manually
+// ✅ Handle preflight
 app.options('*', cors());
 
 // 🧾 Body parsing
@@ -82,6 +92,15 @@ app.use((req, res) => {
 // Global error
 app.use((err, req, res, next) => {
   console.error('Server error:', err.message);
+
+  // 👇 Important for CORS errors
+  if (err.message === "Not allowed by CORS") {
+    return res.status(403).json({
+      success: false,
+      error: err.message
+    });
+  }
+
   res.status(500).json({
     success: false,
     error: err.message || 'Internal server error'
@@ -95,7 +114,7 @@ const PORT = process.env.PORT || 5000;
 const startServer = async () => {
   try {
     await connectMongoDB();
-    await mysqlPool.getConnection();
+    await testMySQL();
 
     app.listen(PORT, () => {
       console.log('========================================');
