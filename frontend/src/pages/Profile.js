@@ -4,106 +4,188 @@ import Navbar from '../components/Navbar';
 
 export default function Profile() {
   const [progress, setProgress] = useState([]);
+  const [stats, setStats] = useState({});
   const [loading, setLoading] = useState(true);
   const [editing, setEditing] = useState(false);
   const [formData, setFormData] = useState({ full_name: '', username: '' });
   const [message, setMessage] = useState('');
+  const [msgType, setMsgType] = useState('success');
 
   const user = JSON.parse(localStorage.getItem('user') || '{}');
 
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const progressRes = await progressAPI.getProgress();
-
-        setProgress(progressRes.data.progress || []);
-
+        const res = await progressAPI.getProgress();
+        setProgress(res.data.progress || []);
+        setStats(res.data.stats || {});
         setFormData({
           full_name: user?.fullName || '',
           username: user?.username || ''
         });
-
       } catch (err) {
         console.error(err);
       } finally {
         setLoading(false);
       }
     };
-
     fetchData();
-  }, [user?.fullName, user?.username]);
+  }, []);
 
   const handleUpdate = async () => {
     try {
       const res = await authAPI.updateProfile(formData);
-
       localStorage.setItem('user', JSON.stringify({
         ...user,
         fullName: res.data.user.full_name,
         username: res.data.user.username
       }));
-
       setMessage('Profile updated successfully!');
+      setMsgType('success');
       setEditing(false);
-
       setTimeout(() => setMessage(''), 3000);
     } catch (err) {
-      setMessage('Update failed');
+      setMessage('Update failed. Please try again.');
+      setMsgType('error');
     }
   };
 
+  const getDifficultyColor = (difficulty) => {
+    const colors = { beginner: '#27ae60', intermediate: '#f39c12', advanced: '#e74c3c' };
+    return colors[difficulty] || '#666';
+  };
+
+  const getScoreColor = (score, max) => {
+    const pct = (score / max) * 100;
+    if (pct >= 80) return '#27ae60';
+    if (pct >= 50) return '#f39c12';
+    return '#e74c3c';
+  };
+
+  const styles = {
+    page: { minHeight: '100vh', background: '#0a0e1a', color: '#e2e8f0' },
+    container: { maxWidth: '1000px', margin: '0 auto', padding: '2rem 1.5rem' },
+    header: { display: 'flex', alignItems: 'center', gap: '1.5rem', marginBottom: '2rem', background: 'linear-gradient(135deg, #1a1f35, #0d1117)', border: '1px solid #2d3748', borderRadius: '12px', padding: '1.5rem' },
+    avatar: { width: '80px', height: '80px', borderRadius: '50%', background: 'linear-gradient(135deg, #667eea, #764ba2)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '2rem', fontWeight: 'bold', color: 'white', flexShrink: 0 },
+    username: { fontSize: '1.5rem', fontWeight: 'bold', color: '#e2e8f0', margin: 0 },
+    email: { color: '#718096', margin: '0.25rem 0 0' },
+    editBtn: { marginLeft: 'auto', padding: '0.5rem 1.2rem', background: editing ? '#4a5568' : 'linear-gradient(135deg, #667eea, #764ba2)', color: 'white', border: 'none', borderRadius: '8px', cursor: 'pointer', fontWeight: '600' },
+    statsGrid: { display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '1rem', marginBottom: '2rem' },
+    statCard: { background: '#1a1f35', border: '1px solid #2d3748', borderRadius: '10px', padding: '1.2rem', textAlign: 'center' },
+    statNum: { fontSize: '1.8rem', fontWeight: 'bold', color: '#667eea' },
+    statLabel: { color: '#718096', fontSize: '0.85rem', marginTop: '0.25rem' },
+    section: { background: '#1a1f35', border: '1px solid #2d3748', borderRadius: '12px', padding: '1.5rem', marginBottom: '1.5rem' },
+    sectionTitle: { fontSize: '1.1rem', fontWeight: 'bold', color: '#e2e8f0', marginBottom: '1rem', paddingBottom: '0.5rem', borderBottom: '1px solid #2d3748' },
+    editForm: { display: 'flex', flexDirection: 'column', gap: '1rem' },
+    input: { padding: '0.75rem 1rem', background: '#0d1117', border: '1px solid #4a5568', borderRadius: '8px', color: '#e2e8f0', fontSize: '1rem', outline: 'none' },
+    label: { color: '#a0aec0', fontSize: '0.85rem', marginBottom: '0.25rem' },
+    saveBtn: { padding: '0.75rem', background: 'linear-gradient(135deg, #667eea, #764ba2)', color: 'white', border: 'none', borderRadius: '8px', cursor: 'pointer', fontWeight: '600', fontSize: '1rem' },
+    cancelBtn: { padding: '0.75rem', background: '#2d3748', color: '#e2e8f0', border: 'none', borderRadius: '8px', cursor: 'pointer', fontWeight: '600' },
+    msgBox: { padding: '0.75rem 1rem', borderRadius: '8px', marginBottom: '1rem', fontWeight: '500' },
+    historyItem: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '0.9rem 1rem', background: '#0d1117', borderRadius: '8px', marginBottom: '0.5rem', border: '1px solid #2d3748' },
+    badge: { padding: '0.2rem 0.6rem', borderRadius: '20px', fontSize: '0.75rem', fontWeight: '600', color: 'white' },
+    scoreBar: { height: '6px', borderRadius: '3px', background: '#2d3748', marginTop: '0.4rem', width: '120px' },
+    empty: { textAlign: 'center', color: '#718096', padding: '2rem' }
+  };
+
   return (
-    <div style={{ minHeight: '100vh' }}>
+    <div style={styles.page}>
       <Navbar />
+      <div style={styles.container}>
 
-      <h1>Profile</h1>
-
-      {loading ? (
-        <p>Loading...</p>
-      ) : (
-        <>
-          <h2>{user?.fullName || user?.username}</h2>
-
-          <button onClick={() => setEditing(!editing)}>
-            {editing ? 'Cancel' : 'Edit'}
+        {/* Header */}
+        <div style={styles.header}>
+          <div style={styles.avatar}>
+            {(user?.fullName || user?.username || 'U')[0].toUpperCase()}
+          </div>
+          <div>
+            <p style={styles.username}>{user?.fullName || user?.username}</p>
+            <p style={styles.email}>@{user?.username}</p>
+          </div>
+          <button style={styles.editBtn} onClick={() => setEditing(!editing)}>
+            {editing ? '✕ Cancel' : '✎ Edit Profile'}
           </button>
+        </div>
 
-          {editing && (
-            <>
-              <input
-                value={formData.full_name}
-                onChange={(e) =>
-                  setFormData({ ...formData, full_name: e.target.value })
-                }
-              />
+        {/* Message */}
+        {message && (
+          <div style={{ ...styles.msgBox, background: msgType === 'success' ? '#1a3a2a' : '#3a1a1a', border: `1px solid ${msgType === 'success' ? '#27ae60' : '#e74c3c'}`, color: msgType === 'success' ? '#27ae60' : '#e74c3c' }}>
+            {message}
+          </div>
+        )}
 
-              <input
-                value={formData.username}
-                onChange={(e) =>
-                  setFormData({ ...formData, username: e.target.value })
-                }
-              />
+        {/* Edit Form */}
+        {editing && (
+          <div style={styles.section}>
+            <div style={styles.sectionTitle}>Edit Profile</div>
+            <div style={styles.editForm}>
+              <div>
+                <div style={styles.label}>Full Name</div>
+                <input style={styles.input} value={formData.full_name} onChange={e => setFormData({ ...formData, full_name: e.target.value })} placeholder="Full Name" />
+              </div>
+              <div>
+                <div style={styles.label}>Username</div>
+                <input style={styles.input} value={formData.username} onChange={e => setFormData({ ...formData, username: e.target.value })} placeholder="Username" />
+              </div>
+              <div style={{ display: 'flex', gap: '0.75rem' }}>
+                <button style={styles.saveBtn} onClick={handleUpdate}>Save Changes</button>
+                <button style={styles.cancelBtn} onClick={() => setEditing(false)}>Cancel</button>
+              </div>
+            </div>
+          </div>
+        )}
 
-              <button onClick={handleUpdate}>Save</button>
-            </>
-          )}
+        {/* Stats */}
+        {!loading && (
+          <div style={styles.statsGrid}>
+            {[
+              { label: 'Total Attempts', value: stats.total_attempts || 0 },
+              { label: 'Completed', value: stats.completed_scenarios || 0 },
+              { label: 'Avg Score', value: stats.avg_score ? Math.round(stats.avg_score) : 0 },
+              { label: 'Best Score', value: stats.best_score || 0 },
+            ].map((s, i) => (
+              <div key={i} style={styles.statCard}>
+                <div style={styles.statNum}>{s.value}</div>
+                <div style={styles.statLabel}>{s.label}</div>
+              </div>
+            ))}
+          </div>
+        )}
 
-          {message && <p>{message}</p>}
-
-          <h3>History</h3>
-
-          {progress.length === 0 ? (
-            <p>No data</p>
+        {/* History */}
+        <div style={styles.section}>
+          <div style={styles.sectionTitle}>📋 Scenario History</div>
+          {loading ? (
+            <div style={styles.empty}>Loading...</div>
+          ) : progress.length === 0 ? (
+            <div style={styles.empty}>
+              <div style={{ fontSize: '2rem', marginBottom: '0.5rem' }}>🎯</div>
+              <div>No scenarios completed yet. Start training!</div>
+            </div>
           ) : (
             progress.map((item, i) => (
-              <div key={i}>
-                <p>{item.title}</p>
-                <p>{item.score}/{item.max_score}</p>
+              <div key={i} style={styles.historyItem}>
+                <div style={{ flex: 1 }}>
+                  <div style={{ fontWeight: '600', color: '#e2e8f0', marginBottom: '0.25rem' }}>{item.title}</div>
+                  <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
+                    <span style={{ ...styles.badge, background: getDifficultyColor(item.difficulty) }}>{item.difficulty}</span>
+                    <span style={{ color: '#718096', fontSize: '0.8rem' }}>{item.role}</span>
+                  </div>
+                </div>
+                <div style={{ textAlign: 'right' }}>
+                  <div style={{ fontWeight: 'bold', color: getScoreColor(item.score, item.max_score || 100), fontSize: '1.1rem' }}>
+                    {item.score}/{item.max_score || 100}
+                  </div>
+                  <div style={styles.scoreBar}>
+                    <div style={{ height: '100%', borderRadius: '3px', width: `${Math.min(100, (item.score / (item.max_score || 100)) * 100)}%`, background: getScoreColor(item.score, item.max_score || 100) }} />
+                  </div>
+                </div>
               </div>
             ))
           )}
-        </>
-      )}
+        </div>
+
+      </div>
     </div>
   );
 }
