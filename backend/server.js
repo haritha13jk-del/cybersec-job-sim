@@ -5,10 +5,8 @@ const morgan = require('morgan');
 const rateLimit = require('express-rate-limit');
 require('dotenv').config();
 
-// 🔍 Check AI key
 console.log(`AI: ${process.env.GEMINI_API_KEY ? 'Enabled' : 'Disabled'}`);
 
-// 📦 Imports
 const { mysqlPool, connectMongoDB } = require('./config/database');
 const authRoutes = require('./routes/auth');
 const scenarioRoutes = require('./routes/scenarios');
@@ -20,36 +18,24 @@ const app = express();
 // 🔐 Security
 app.use(helmet());
 
-// 🌐 CORS (FINAL FIX)
-const allowedOrigins = [
-  'http://localhost:3000',
-  'https://cybersecurityjobstimulation.netlify.app'
-];
-
+// ✅ ✅ FINAL CORS FIX (NO FUNCTION = NO FAILURE)
 app.use(cors({
-  origin: function (origin, callback) {
-    if (!origin) return callback(null, true); // allow Postman / mobile
-
-    // allow exact origins
-    if (allowedOrigins.includes(origin)) {
-      return callback(null, true);
-    }
-
-    // allow ALL Netlify preview URLs
-    if (origin.endsWith('.netlify.app')) {
-      return callback(null, true);
-    }
-
-    return callback(new Error('Not allowed by CORS'));
-  },
+  origin: [
+    "http://localhost:3000",
+    "https://cybersecurityjobstimulation.netlify.app",
+    /\.netlify\.app$/ // allow ALL Netlify deploy previews
+  ],
   credentials: true
 }));
+
+// 🔥 IMPORTANT: Handle preflight manually
+app.options('*', cors());
 
 // 🧾 Body parsing
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
-// 📊 Logger
+// 📊 Logging
 app.use(morgan('dev'));
 
 // 🚫 Rate limiting
@@ -62,7 +48,6 @@ app.use('/api/', limiter);
 
 // ================= ROUTES =================
 
-// Root route
 app.get('/', (req, res) => {
   res.json({
     success: true,
@@ -70,13 +55,11 @@ app.get('/', (req, res) => {
   });
 });
 
-// API routes
 app.use('/api/auth', authRoutes);
 app.use('/api/scenarios', scenarioRoutes);
 app.use('/api/progress', progressRoutes);
 app.use('/api/ai', aiRoutes);
 
-// Health check
 app.get('/api/health', (req, res) => {
   res.json({
     success: true,
@@ -88,7 +71,7 @@ app.get('/api/health', (req, res) => {
 
 // ================= ERROR HANDLING =================
 
-// 404 handler
+// 404
 app.use((req, res) => {
   res.status(404).json({
     success: false,
@@ -96,7 +79,7 @@ app.use((req, res) => {
   });
 });
 
-// Global error handler
+// Global error
 app.use((err, req, res, next) => {
   console.error('Server error:', err.message);
   res.status(500).json({
@@ -105,7 +88,7 @@ app.use((err, req, res, next) => {
   });
 });
 
-// ================= SERVER START =================
+// ================= START SERVER =================
 
 const PORT = process.env.PORT || 5000;
 
