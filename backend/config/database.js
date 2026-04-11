@@ -7,17 +7,23 @@ const mongoose = require('mongoose');
 /* ================= MYSQL CONNECTION ================= */
 
 const mysqlConfig = {
-  host: process.env.MYSQL_HOST || 'localhost',
-  user: process.env.MYSQL_USER || 'root',
-  password: process.env.MYSQL_PASSWORD || '',
-  database: process.env.MYSQL_DATABASE || '',
+  // ✅ Checks Railway's auto-generated names first, then your local .env names
+  host: process.env.MYSQLHOST || process.env.MYSQL_HOST || 'localhost',
+  user: process.env.MYSQLUSER || process.env.MYSQL_USER || 'root',
+  password: process.env.MYSQLPASSWORD || process.env.MYSQL_PASSWORD || '',
+  database: process.env.MYSQLDATABASE || process.env.MYSQL_DATABASE || '',
   waitForConnections: true,
   connectionLimit: 10,
   queueLimit: 0
 };
 
 // 🔍 Debug log (IMPORTANT)
-console.log('MySQL Config:', mysqlConfig);
+console.log('MySQL Config:', {
+  host: mysqlConfig.host,
+  user: mysqlConfig.user,
+  database: mysqlConfig.database
+  // ✅ Never log password
+});
 
 // ✅ Create pool safely
 const mysqlPool = mysql.createPool(mysqlConfig);
