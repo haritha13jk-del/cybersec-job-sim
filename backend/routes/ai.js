@@ -86,7 +86,7 @@ router.get('/history', authMiddleware, async (req, res) => {
       query += ' AND ch.scenario_id = ?';
       params.push(scenarioId);
     }
-    query += ' ORDER BY ch.timestamp DESC LIMIT ?';
+    query += ' ORDER BY ch.created_at DESC LIMIT ?';
     params.push(parseInt(limit));
     const [history] = await mysqlPool.query(query, params);
     res.json({ success: true, history });
