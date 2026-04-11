@@ -90,7 +90,7 @@ function getFallbackResponse(userMessage, scenario = null) {
   return formatResponse("Cybersecurity Investigation Guidance", "A good way to approach this is to identify the attacker objective, the evidence available, and the next best validation step. Think like an analyst: confirm the event, collect artifacts, and determine impact.", ["What is the suspicious activity here?", "What logs, files, or alerts support it?", "What would you verify first before making a decision?"]);
 }
 
-// ✅ FIXED: Changed from gemini-2.0-flash-lite to gemini-1.5-flash
+// ✅ FIXED: Changed from gemini-1.5-flash to gemini-1.5-flash
 async function tryGemini(prompt) {
   const model = genAI.getGenerativeModel({ model: 'gemini-1.5-flash' });
   const result = await model.generateContent(prompt);
