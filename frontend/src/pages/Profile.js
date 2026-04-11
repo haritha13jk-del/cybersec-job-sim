@@ -9,15 +9,14 @@ export default function Profile() {
   const [editing, setEditing] = useState(false);
   const [formData, setFormData] = useState({ full_name: '', username: '' });
   const [message, setMessage] = useState('');
-  const [msgType, setMsgType] = useState('success');
 
   const user = JSON.parse(localStorage.getItem('user') || '{}');
 
   const fetchData = useCallback(async () => {
     try {
-      const res = await progressAPI.getProgress();
-      setProgress(res.data.progress || []);
-      setStats(res.data.stats || {});
+      const progressRes = await progressAPI.getProgress();
+      setProgress(progressRes.data.progress || []);
+      setStats(progressRes.data.stats || {});
       setFormData({
         full_name: user?.fullName || '',
         username: user?.username || ''
@@ -27,7 +26,7 @@ export default function Profile() {
     } finally {
       setLoading(false);
     }
-  }, [user?.fullName, user?.username]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
     fetchData();
@@ -42,145 +41,224 @@ export default function Profile() {
         username: res.data.user.username
       }));
       setMessage('Profile updated successfully!');
-      setMsgType('success');
       setEditing(false);
       setTimeout(() => setMessage(''), 3000);
     } catch (err) {
-      setMessage('Update failed. Please try again.');
-      setMsgType('error');
+      setMessage('Update failed');
     }
   };
 
-  const getDifficultyColor = (difficulty) => {
-    const colors = { beginner: '#27ae60', intermediate: '#f39c12', advanced: '#e74c3c' };
-    return colors[difficulty] || '#666';
-  };
-
   const getScoreColor = (score, max) => {
-    const pct = (score / max) * 100;
-    if (pct >= 80) return '#27ae60';
-    if (pct >= 50) return '#f39c12';
-    return '#e74c3c';
+    const pct = (score / (max || 100)) * 100;
+    if (pct >= 80) return '#38a169';
+    if (pct >= 50) return '#d69e2e';
+    return '#e53e3e';
   };
 
-  const styles = {
-    page: { minHeight: '100vh', background: '#f8f9fa', color: '#1a202c' },
-    container: { maxWidth: '1000px', margin: '0 auto', padding: '2rem 1.5rem' },
-    header: { display: 'flex', alignItems: 'center', gap: '1.5rem', marginBottom: '2rem', background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '12px', padding: '1.5rem', boxShadow: '0 1px 3px rgba(0,0,0,0.08)' },
-    avatar: { width: '80px', height: '80px', borderRadius: '50%', background: 'linear-gradient(135deg, #667eea, #764ba2)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '2rem', fontWeight: 'bold', color: 'white', flexShrink: 0 },
-    username: { fontSize: '1.5rem', fontWeight: 'bold', color: '#1a202c', margin: 0 },
-    email: { color: '#718096', margin: '0.25rem 0 0' },
-    editBtn: { marginLeft: 'auto', padding: '0.5rem 1.2rem', background: editing ? '#e2e8f0' : 'linear-gradient(135deg, #667eea, #764ba2)', color: editing ? '#4a5568' : 'white', border: 'none', borderRadius: '8px', cursor: 'pointer', fontWeight: '600' },
-    statsGrid: { display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '1rem', marginBottom: '2rem' },
-    statCard: { background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '10px', padding: '1.2rem', textAlign: 'center', boxShadow: '0 1px 3px rgba(0,0,0,0.06)' },
-    statNum: { fontSize: '1.8rem', fontWeight: 'bold', color: '#667eea' },
-    statLabel: { color: '#718096', fontSize: '0.85rem', marginTop: '0.25rem' },
-    section: { background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '12px', padding: '1.5rem', marginBottom: '1.5rem', boxShadow: '0 1px 3px rgba(0,0,0,0.06)' },
-    sectionTitle: { fontSize: '1.1rem', fontWeight: 'bold', color: '#1a202c', marginBottom: '1rem', paddingBottom: '0.5rem', borderBottom: '1px solid #e2e8f0' },
-    editForm: { display: 'flex', flexDirection: 'column', gap: '1rem' },
-    input: { padding: '0.75rem 1rem', background: '#f8f9fa', border: '1px solid #cbd5e0', borderRadius: '8px', color: '#1a202c', fontSize: '1rem', outline: 'none' },
-    label: { color: '#4a5568', fontSize: '0.85rem', marginBottom: '0.25rem' },
-    saveBtn: { padding: '0.75rem', background: 'linear-gradient(135deg, #667eea, #764ba2)', color: 'white', border: 'none', borderRadius: '8px', cursor: 'pointer', fontWeight: '600', fontSize: '1rem' },
-    cancelBtn: { padding: '0.75rem', background: '#e2e8f0', color: '#4a5568', border: 'none', borderRadius: '8px', cursor: 'pointer', fontWeight: '600' },
-    msgBox: { padding: '0.75rem 1rem', borderRadius: '8px', marginBottom: '1rem', fontWeight: '500' },
-    historyItem: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '0.9rem 1rem', background: '#f8f9fa', borderRadius: '8px', marginBottom: '0.5rem', border: '1px solid #e2e8f0' },
-    badge: { padding: '0.2rem 0.6rem', borderRadius: '20px', fontSize: '0.75rem', fontWeight: '600', color: 'white' },
-    scoreBar: { height: '6px', borderRadius: '3px', background: '#e2e8f0', marginTop: '0.4rem', width: '120px' },
-    empty: { textAlign: 'center', color: '#718096', padding: '2rem' }
-  };
+  const totalTime = stats.total_time
+    ? `${Math.round(stats.total_time / 60)} mins`
+    : '0 mins';
 
   return (
-    <div style={styles.page}>
+    <div style={{ minHeight: '100vh', background: '#f0f4f8' }}>
       <Navbar />
-      <div style={styles.container}>
 
-        <div style={styles.header}>
-          <div style={styles.avatar}>
-            {(user?.fullName || user?.username || 'U')[0].toUpperCase()}
-          </div>
-          <div>
-            <p style={styles.username}>{user?.fullName || user?.username}</p>
-            <p style={styles.email}>@{user?.username}</p>
-          </div>
-          <button style={styles.editBtn} onClick={() => setEditing(!editing)}>
-            {editing ? '✕ Cancel' : '✎ Edit Profile'}
-          </button>
+      <div className="container" style={{ padding: '32px 24px', maxWidth: '900px', margin: '0 auto' }}>
+
+        {/* Page Header */}
+        <div style={{ marginBottom: '28px' }}>
+          <h1 style={{ fontSize: '24px', fontWeight: '700', color: '#2d3748', marginBottom: '4px' }}>
+            👤 My Profile
+          </h1>
+          <p style={{ color: '#718096', fontSize: '14px' }}>
+            Manage your account and view your training history
+          </p>
         </div>
 
-        {message && (
-          <div style={{ ...styles.msgBox, background: msgType === 'success' ? '#f0fff4' : '#fff5f5', border: `1px solid ${msgType === 'success' ? '#27ae60' : '#e74c3c'}`, color: msgType === 'success' ? '#27ae60' : '#e74c3c' }}>
-            {message}
-          </div>
-        )}
+        {loading ? (
+          <div className="loading">Loading profile...</div>
+        ) : (
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '24px' }}>
 
-        {editing && (
-          <div style={styles.section}>
-            <div style={styles.sectionTitle}>Edit Profile</div>
-            <div style={styles.editForm}>
-              <div>
-                <div style={styles.label}>Full Name</div>
-                <input style={styles.input} value={formData.full_name} onChange={e => setFormData({ ...formData, full_name: e.target.value })} placeholder="Full Name" />
+            {/* LEFT COLUMN */}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+
+              {/* Profile Card */}
+              <div className="card">
+                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center', padding: '8px 0 16px' }}>
+                  <div style={{
+                    width: '72px', height: '72px', borderRadius: '50%',
+                    background: 'linear-gradient(135deg, #667eea, #764ba2)',
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    fontSize: '28px', fontWeight: '700', color: '#fff',
+                    marginBottom: '14px'
+                  }}>
+                    {(user?.fullName || user?.username || 'U')[0].toUpperCase()}
+                  </div>
+                  <h2 style={{ fontSize: '18px', fontWeight: '700', color: '#2d3748', marginBottom: '2px' }}>
+                    {user?.fullName || user?.username}
+                  </h2>
+                  <p style={{ fontSize: '13px', color: '#718096', marginBottom: '10px' }}>
+                    @{user?.username}
+                  </p>
+                  <span style={{
+                    fontSize: '11px', fontWeight: '700', letterSpacing: '0.05em',
+                    padding: '3px 12px', borderRadius: '20px',
+                    background: user?.role === 'admin' ? '#fef3c7' : '#ebf8ff',
+                    color: user?.role === 'admin' ? '#92400e' : '#2b6cb0',
+                    border: `1px solid ${user?.role === 'admin' ? '#fbbf24' : '#90cdf4'}`
+                  }}>
+                    {(user?.role || 'student').toUpperCase()}
+                  </span>
+                </div>
+
+                <hr style={{ border: 'none', borderTop: '1px solid #e2e8f0', margin: '0 0 16px' }} />
+
+                {/* Edit toggle */}
+                {!editing ? (
+                  <button
+                    className="btn btn-primary"
+                    style={{ width: '100%' }}
+                    onClick={() => setEditing(true)}
+                  >
+                    ✏️ Edit Profile
+                  </button>
+                ) : (
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                    <input
+                      className="form-input"
+                      placeholder="Full Name"
+                      value={formData.full_name}
+                      onChange={(e) => setFormData({ ...formData, full_name: e.target.value })}
+                    />
+                    <input
+                      className="form-input"
+                      placeholder="Username"
+                      value={formData.username}
+                      onChange={(e) => setFormData({ ...formData, username: e.target.value })}
+                    />
+                    <div style={{ display: 'flex', gap: '8px' }}>
+                      <button className="btn btn-primary" style={{ flex: 1 }} onClick={handleUpdate}>Save</button>
+                      <button className="btn btn-secondary" style={{ flex: 1 }} onClick={() => setEditing(false)}>Cancel</button>
+                    </div>
+                  </div>
+                )}
+
+                {message && (
+                  <p style={{
+                    marginTop: '10px', padding: '8px 12px', borderRadius: '8px',
+                    background: message.includes('success') ? '#f0fff4' : '#fff5f5',
+                    color: message.includes('success') ? '#276749' : '#c53030',
+                    fontSize: '13px', textAlign: 'center'
+                  }}>
+                    {message}
+                  </p>
+                )}
               </div>
-              <div>
-                <div style={styles.label}>Username</div>
-                <input style={styles.input} value={formData.username} onChange={e => setFormData({ ...formData, username: e.target.value })} placeholder="Username" />
-              </div>
-              <div style={{ display: 'flex', gap: '0.75rem' }}>
-                <button style={styles.saveBtn} onClick={handleUpdate}>Save Changes</button>
-                <button style={styles.cancelBtn} onClick={() => setEditing(false)}>Cancel</button>
+
+              {/* Training Statistics */}
+              <div className="card">
+                <h3 style={{ fontSize: '15px', fontWeight: '700', color: '#2d3748', marginBottom: '16px' }}>
+                  📋 Training Statistics
+                </h3>
+                {[
+                  { label: 'Total Attempts', value: stats.total_attempts || 0, color: '#5a67d8' },
+                  { label: 'Completed', value: stats.completed_scenarios || 0, color: '#38a169' },
+                  { label: 'Average Score', value: stats.avg_score ? `${Math.round(stats.avg_score)}%` : '0%', color: '#d69e2e' },
+                  { label: 'Best Score', value: stats.best_score || 0, color: '#e53e3e' },
+                  { label: 'Total Time', value: totalTime, color: '#805ad5' },
+                ].map((item) => (
+                  <div key={item.label} style={{
+                    display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+                    padding: '10px 0', borderBottom: '1px solid #f7fafc'
+                  }}>
+                    <span style={{ fontSize: '13px', color: '#718096' }}>{item.label}</span>
+                    <span style={{ fontSize: '15px', fontWeight: '700', color: item.color }}>
+                      {item.value}
+                    </span>
+                  </div>
+                ))}
               </div>
             </div>
-          </div>
-        )}
 
-        {!loading && (
-          <div style={styles.statsGrid}>
-            {[
-              { label: 'Total Attempts', value: stats.total_attempts || 0 },
-              { label: 'Completed', value: stats.completed_scenarios || 0 },
-              { label: 'Avg Score', value: stats.avg_score ? Math.round(stats.avg_score) : 0 },
-              { label: 'Best Score', value: stats.best_score || 0 },
-            ].map((s, i) => (
-              <div key={i} style={styles.statCard}>
-                <div style={styles.statNum}>{s.value}</div>
-                <div style={styles.statLabel}>{s.label}</div>
-              </div>
-            ))}
-          </div>
-        )}
+            {/* RIGHT COLUMN - Training History */}
+            <div className="card" style={{ alignSelf: 'start' }}>
+              <h3 style={{ fontSize: '15px', fontWeight: '700', color: '#2d3748', marginBottom: '16px' }}>
+                📋 Training History
+              </h3>
 
-        <div style={styles.section}>
-          <div style={styles.sectionTitle}>📋 Scenario History</div>
-          {loading ? (
-            <div style={styles.empty}>Loading...</div>
-          ) : progress.length === 0 ? (
-            <div style={styles.empty}>
-              <div style={{ fontSize: '2rem', marginBottom: '0.5rem' }}>🎯</div>
-              <div>No scenarios completed yet. Start training!</div>
+              {progress.length === 0 ? (
+                <div style={{ textAlign: 'center', padding: '40px 0' }}>
+                  <div style={{ fontSize: '40px', marginBottom: '12px' }}>🔍</div>
+                  <p style={{ color: '#718096', fontSize: '14px' }}>No training history yet</p>
+                </div>
+              ) : (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                  {progress.map((item, i) => {
+                    const scoreColor = getScoreColor(item.score, item.max_score || item.scenario_max_score || 100);
+                    const maxScore = item.max_score || item.scenario_max_score || 100;
+                    const pct = Math.round((item.score / maxScore) * 100);
+
+                    return (
+                      <div key={i} style={{
+                        padding: '12px 14px',
+                        border: '1px solid #e2e8f0',
+                        borderRadius: '10px',
+                        background: '#fafafa',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '12px'
+                      }}>
+                        {/* Icon */}
+                        <div style={{
+                          width: '36px', height: '36px', borderRadius: '50%',
+                          background: '#ebf8ff', display: 'flex',
+                          alignItems: 'center', justifyContent: 'center',
+                          fontSize: '16px', flexShrink: 0
+                        }}>
+                          🔍
+                        </div>
+
+                        {/* Info */}
+                        <div style={{ flex: 1, minWidth: 0 }}>
+                          <p style={{ fontWeight: '600', fontSize: '13px', color: '#2d3748', marginBottom: '3px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                            {item.title}
+                          </p>
+                          <div style={{ display: 'flex', gap: '6px', alignItems: 'center', flexWrap: 'wrap' }}>
+                            <span style={{
+                              fontSize: '10px', padding: '1px 7px', borderRadius: '20px',
+                              background: item.difficulty === 'beginner' ? '#f0fff4' : item.difficulty === 'intermediate' ? '#fffbeb' : '#fff5f5',
+                              color: item.difficulty === 'beginner' ? '#276749' : item.difficulty === 'intermediate' ? '#744210' : '#742a2a',
+                              border: '1px solid',
+                              borderColor: item.difficulty === 'beginner' ? '#9ae6b4' : item.difficulty === 'intermediate' ? '#fbd38d' : '#feb2b2',
+                              fontWeight: '600'
+                            }}>
+                              {item.difficulty}
+                            </span>
+                            <span style={{ fontSize: '11px', color: '#a0aec0' }}>
+                              {item.attempt_number ? `Attempt #${item.attempt_number}` : ''}
+                            </span>
+                          </div>
+                        </div>
+
+                        {/* Score */}
+                        <div style={{ textAlign: 'right', flexShrink: 0 }}>
+                          <p style={{ fontSize: '15px', fontWeight: '700', color: scoreColor, marginBottom: '4px' }}>
+                            {item.score}/{maxScore}
+                          </p>
+                          <div style={{ width: '60px', height: '4px', background: '#e2e8f0', borderRadius: '2px', overflow: 'hidden' }}>
+                            <div style={{ width: `${pct}%`, height: '100%', background: scoreColor, borderRadius: '2px' }} />
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
             </div>
-          ) : (
-            progress.map((item, i) => (
-              <div key={i} style={styles.historyItem}>
-                <div style={{ flex: 1 }}>
-                  <div style={{ fontWeight: '600', color: '#1a202c', marginBottom: '0.25rem' }}>{item.title}</div>
-                  <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
-                    <span style={{ ...styles.badge, background: getDifficultyColor(item.difficulty) }}>{item.difficulty}</span>
-                    <span style={{ color: '#718096', fontSize: '0.8rem' }}>{item.role}</span>
-                  </div>
-                </div>
-                <div style={{ textAlign: 'right' }}>
-                  <div style={{ fontWeight: 'bold', color: getScoreColor(item.score, item.max_score || 100), fontSize: '1.1rem' }}>
-                    {item.score}/{item.max_score || 100}
-                  </div>
-                  <div style={styles.scoreBar}>
-                    <div style={{ height: '100%', borderRadius: '3px', width: `${Math.min(100, (item.score / (item.max_score || 100)) * 100)}%`, background: getScoreColor(item.score, item.max_score || 100) }} />
-                  </div>
-                </div>
-              </div>
-            ))
-          )}
-        </div>
 
+          </div>
+        )}
       </div>
     </div>
   );
