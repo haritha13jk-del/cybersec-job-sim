@@ -1,4 +1,3 @@
-
 const { mysqlPool } = require('../config/database');
 
 class UserProgress {
@@ -9,12 +8,11 @@ class UserProgress {
       [userId, scenarioId]
     );
     const attemptNumber = (existing[0].max_attempt || 0) + 1;
-    const query = `INSERT INTO user_progress (user_id, scenario_id, score, max_score, time_taken, actions_taken, hints_used, completed, attempt_number, completed_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, NOW())`;
     const query = `INSERT INTO user_progress (user_id, scenario_id, score, time_taken, actions_taken, hints_used, completed, attempt_number, completed_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, NOW())`;
-const [result] = await mysqlPool.query(query, [
-  userId, scenarioId, score, timeTaken,
-  JSON.stringify(actionsTaken), hintsUsed, completed, attemptNumber
-]);
+    const [result] = await mysqlPool.query(query, [
+      userId, scenarioId, score, timeTaken,
+      JSON.stringify(actionsTaken), hintsUsed, completed, attemptNumber
+    ]);
     await UserProgress.updateLeaderboard(userId);
     return result.insertId;
   }
