@@ -14,22 +14,7 @@ const aiRoutes      = require('./routes/ai');
 const app = express();
 
 const corsOptions = {
-  origin: function (origin, callback) {
-    if (!origin) return callback(null, true);
-
-    const isAllowed =
-      origin === 'http://localhost:3000' ||
-      origin === 'https://cybersecurityjobstimulation.netlify.app' ||
-      origin === 'https://cybersec-job-sim-dknb.vercel.app' ||
-      /^https:\/\/cybersec-job-sim[a-z0-9-]*\.vercel\.app$/.test(origin) ||
-      /^https:\/\/[a-z0-9-]+--[a-z0-9-]+\.netlify\.app$/.test(origin) ||
-      /^https:\/\/[a-z0-9-]+\.netlify\.app$/.test(origin);
-
-    if (isAllowed) return callback(null, true);
-
-    console.warn('CORS blocked origin: ' + origin);
-    return callback(new Error('CORS blocked: ' + origin));
-  },
+  origin: true,
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With'],
@@ -74,9 +59,6 @@ app.use((req, res) => {
 });
 
 app.use((err, req, res, next) => {
-  if (err.message && err.message.startsWith('CORS blocked')) {
-    return res.status(403).json({ success: false, error: err.message });
-  }
   console.error('Server error:', err.message);
   res.status(err.status || 500).json({
     success: false,
