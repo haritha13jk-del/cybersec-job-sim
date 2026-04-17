@@ -13,7 +13,7 @@ export default function Profile() {
       try {
         setLoading(true);
         const res = await progressAPI.getUserProgress();
-        setProgress(res.data?.data || res.data || null);
+        setProgress(res.data?.stats || res.data?.data || res.data || null);
       } catch (err) {
         console.error("Profile load error:", err);
         setProgress(null);

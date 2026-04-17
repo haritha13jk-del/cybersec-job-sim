@@ -20,7 +20,7 @@ export default function Dashboard() {
           res = await progressAPI.getUserProgress();
         }
 
-        const data = res?.data?.data || res?.data || {};
+        const data = res?.data?.stats || res?.data?.data || res?.data || {};
 
         setStats({
           totalAttempts: data.total_attempts ?? data.totalAttempts ?? 0,
