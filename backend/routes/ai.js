@@ -1,4 +1,6 @@
 const express = require('express');
+const mongoose = require('mongoose');
+
 const { generateAIResponse, generateHint } = require('../config/gemini');
 const ActivityLog = require('../models/ActivityLog');
 const { authMiddleware } = require('../middleware/auth');
@@ -6,8 +8,6 @@ const { authMiddleware } = require('../middleware/auth');
 const router = express.Router();
 
 /* ================= CHAT MODEL ================= */
-const mongoose = require('mongoose');
-
 const chatSchema = new mongoose.Schema({
   userId: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
   scenarioId: { type: Number, default: null },
@@ -16,7 +16,8 @@ const chatSchema = new mongoose.Schema({
   createdAt: { type: Date, default: Date.now }
 });
 
-const Chat = mongoose.model('Chat', chatSchema);
+// ✅ FIX: prevents "OverwriteModelError"
+const Chat = mongoose.models.Chat || mongoose.model('Chat', chatSchema);
 
 
 /* ================= AI CHAT ================= */
@@ -44,10 +45,12 @@ router.post('/chat', authMiddleware, async (req, res) => {
       });
     }
 
-    // ✅ Save chat (MongoDB)
+    const parsedScenarioId = scenarioId ? Number(scenarioId) : null;
+
+    // ✅ Save chat
     await Chat.create({
       userId,
-      scenarioId: scenarioId || null,
+      scenarioId: parsedScenarioId,
       message,
       response: aiResponse.message
     });
@@ -55,7 +58,7 @@ router.post('/chat', authMiddleware, async (req, res) => {
     // ✅ Log activity
     await ActivityLog.logActivity({
       userId,
-      scenarioId: scenarioId || null,
+      scenarioId: parsedScenarioId,
       action: 'AI_CHAT',
       details: { messageLength: message.length },
       ipAddress: req.ip,
@@ -92,19 +95,20 @@ router.post('/hint', authMiddleware, async (req, res) => {
       });
     }
 
+    const parsedScenarioId = Number(scenarioId);
+
     // ✅ Count previous hints
     const count = await Chat.countDocuments({
       userId,
-      scenarioId,
+      scenarioId: parsedScenarioId,
       message: { $regex: /hint/i }
     });
 
     const attemptNumber = count + 1;
 
     let hint;
-
     try {
-      hint = await generateHint(scenarioId, attemptNumber);
+      hint = await generateHint(parsedScenarioId, attemptNumber);
     } catch (err) {
       console.error("Hint error:", err.message);
       hint = "Unable to generate hint right now.";
@@ -113,7 +117,7 @@ router.post('/hint', authMiddleware, async (req, res) => {
     // ✅ Save hint
     await Chat.create({
       userId,
-      scenarioId,
+      scenarioId: parsedScenarioId,
       message: `hint request ${attemptNumber}`,
       response: hint
     });
@@ -121,7 +125,7 @@ router.post('/hint', authMiddleware, async (req, res) => {
     // ✅ Log activity
     await ActivityLog.logActivity({
       userId,
-      scenarioId,
+      scenarioId: parsedScenarioId,
       action: 'REQUEST_HINT',
       details: { attemptNumber },
       ipAddress: req.ip,
@@ -154,7 +158,7 @@ router.get('/history', authMiddleware, async (req, res) => {
     const filter = { userId };
 
     if (scenarioId) {
-      filter.scenarioId = scenarioId;
+      filter.scenarioId = Number(scenarioId);
     }
 
     const history = await Chat.find(filter)
