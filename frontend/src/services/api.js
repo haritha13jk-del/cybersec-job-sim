@@ -28,7 +28,7 @@ API.interceptors.request.use((req) => {
   return req;
 });
 
-// ================= ERROR DEBUG INTERCEPTOR =================
+// ================= ERROR INTERCEPTOR =================
 API.interceptors.response.use(
   (response) => response,
   (error) => {

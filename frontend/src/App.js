@@ -1,40 +1,41 @@
-import { authAPI } from "../services/api";
+import React from 'react';
+import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 
-const handleLogin = async (e) => {
-  e.preventDefault();
+import Login from './pages/Login';
+import Register from './pages/Register';
+import Dashboard from './pages/Dashboard';
+import Scenarios from './pages/Scenarios';
+import ScenarioDetail from './pages/ScenarioDetail';
+import Leaderboard from './pages/Leaderboard';
+import Profile from './pages/Profile';
 
-  try {
-    const res = await authAPI.login({
-      email,
-      password,
-    });
+import './App.css';
 
-    console.log("LOGIN RESPONSE:", res.data);
-
-    // ✅ SAFE TOKEN EXTRACTION (MOST IMPORTANT FIX)
-    const token =
-      res.data?.token ||
-      res.data?.data?.token ||
-      res.data?.accessToken;
-
-    if (!token) {
-      alert("Login failed: No token received");
-      return;
-    }
-
-    // ✅ Save token
-    localStorage.setItem("token", token);
-
-    // OPTIONAL: store user too (safe fallback)
-    if (res.data?.user) {
-      localStorage.setItem("user", JSON.stringify(res.data.user));
-    }
-
-    // ✅ Redirect to dashboard
-    window.location.href = "/";
-
-  } catch (err) {
-    console.log("LOGIN ERROR:", err);
-    alert("Server error or invalid credentials");
-  }
+// 🔐 Protected Route
+const PrivateRoute = ({ children }) => {
+  const token = localStorage.getItem('token');
+  return token ? children : <Navigate to="/login" />;
 };
+
+function App() {
+  return (
+    <Router>
+      <Routes>
+
+        {/* Public Routes */}
+        <Route path="/login" element={<Login />} />
+        <Route path="/register" element={<Register />} />
+
+        {/* Protected Routes */}
+        <Route path="/" element={<PrivateRoute><Dashboard /></PrivateRoute>} />
+        <Route path="/scenarios" element={<PrivateRoute><Scenarios /></PrivateRoute>} />
+        <Route path="/scenarios/:id" element={<PrivateRoute><ScenarioDetail /></PrivateRoute>} />
+        <Route path="/leaderboard" element={<PrivateRoute><Leaderboard /></PrivateRoute>} />
+        <Route path="/profile" element={<PrivateRoute><Profile /></PrivateRoute>} />
+
+      </Routes>
+    </Router>
+  );
+}
+
+export default App;
