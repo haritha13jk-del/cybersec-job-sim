@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import Navbar from "../components/Navbar";
+
 import { progressAPI } from "../services/api";
 
 export default function Leaderboard() {
@@ -55,7 +55,6 @@ export default function Leaderboard() {
 
   return (
     <div style={styles.page}>
-      <Navbar />
 
       <div style={styles.container}>
         {/* Header */}

@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { Link, useLocation } from "react-router-dom";
 import { scenarioAPI } from "../services/api";
-import Navbar from "../components/Navbar";
+
 
 export default function Scenarios() {
   const [scenarios, setScenarios] = useState([]);
@@ -59,7 +59,6 @@ export default function Scenarios() {
 
   return (
     <div style={styles.page}>
-      <Navbar />
 
       <div style={styles.container}>
         {/* Header */}

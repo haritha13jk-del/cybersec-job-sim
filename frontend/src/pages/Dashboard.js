@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
-import Navbar from "../components/Navbar";
+
 import { progressAPI } from "../services/api";
 
 export default function Dashboard() {
@@ -53,7 +53,6 @@ export default function Dashboard() {
 
   return (
     <div style={styles.page}>
-      <Navbar />
 
       <div style={styles.container}>
         {/* Header */}

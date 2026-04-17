@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import Navbar from "../components/Navbar";
+
 import { progressAPI } from "../services/api";
 
 export default function Profile() {
@@ -38,7 +38,6 @@ export default function Profile() {
 
   return (
     <div style={styles.page}>
-      <Navbar />
 
       <div style={styles.container}>
         <h1 style={styles.title}>👤 My Profile</h1>
