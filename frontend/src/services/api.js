@@ -1,51 +1,37 @@
-import axios from "axios";
+import axios from 'axios';
 
-const API_BASE_URL =
-  process.env.REACT_APP_API_URL ||
-  "https://cybersec-job-sim.onrender.com";
+const API_BASE_URL = process.env.REACT_APP_API_URL || 'https://cybersec-job-sim.onrender.com';
 
-// Axios instance
-const api = axios.create({
-  baseURL: API_BASE_URL,
-});
+const api = axios.create({ baseURL: API_BASE_URL });
 
-// Attach JWT token automatically
 api.interceptors.request.use((config) => {
-  const token = localStorage.getItem("token");
-
-  if (token) {
-    config.headers.Authorization = `Bearer ${token}`;
-  }
-
+  const token = localStorage.getItem('token');
+  if (token) config.headers.Authorization = `Bearer ${token}`;
   return config;
 });
 
-// ================= AUTH =================
 export const authAPI = {
-  login: (data) => api.post("/api/auth/login", data),
-  register: (data) => api.post("/api/auth/register", data),
+  login: (data) => api.post('/api/auth/login', data),
+  register: (data) => api.post('/api/auth/register', data),
 };
 
-// ================= SCENARIOS =================
 export const scenarioAPI = {
-  getAll: () => api.get("/api/scenarios"),
+  getAll: (filters = {}) => api.get('/api/scenarios', { params: filters }),
   getById: (id) => api.get(`/api/scenarios/${id}`),
+  submit: (id, data) => api.post(`/api/scenarios/${id}/submit`, data),
 };
 
-// ================= PROGRESS =================
 export const progressAPI = {
-  getUserProgress: () => api.get("/api/progress"),
-
-  // FIX: backend usually expects /leaderboard endpoint
-  getLeaderboard: (limit = 10) =>
-    api.get(`/api/progress/leaderboard?limit=${limit}`),
-
-  updateProgress: (data) => api.post("/api/progress", data),
+  getUserProgress: () => api.get('/api/progress'),
+  getStats: () => api.get('/api/progress/stats'),
+  getLeaderboard: (limit = 10) => api.get(`/api/progress/leaderboard?limit=${limit}`),
+  updateProgress: (data) => api.post('/api/progress', data),
 };
 
-// ================= AI =================
 export const aiAPI = {
-  ask: (data) => api.post("/api/ai", data),
+  chat: (data) => api.post('/api/ai/chat', data),
+  getHint: (scenarioId) => api.post('/api/ai/hint', { scenarioId }),
+  ask: (data) => api.post('/api/ai/chat', data),
 };
 
 export default api;
