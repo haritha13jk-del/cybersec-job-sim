@@ -189,5 +189,5 @@ router.get('/history', authMiddleware, async (req, res) => {
     });
   }
 });
-S
+
 module.exports = router;
