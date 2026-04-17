@@ -149,16 +149,60 @@ export default function Dashboard() {
 
             {/* QUICK START */}
             <div className="card">
-              <h3>🚀 Quick Start</h3>
+  <h3 style={{ fontSize: '16px', fontWeight: '700', marginBottom: '16px' }}>
+    🚀 Quick Start
+  </h3>
 
-              <Link to="/scenarios?role=soc_analyst">SOC Analyst</Link>
-              <br />
-              <Link to="/scenarios?role=penetration_tester">Pen Tester</Link>
-            </div>
+  <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
 
-          </>
-        )}
+    {/* SOC ANALYST CARD */}
+    <Link
+      to="/scenarios?role=soc_analyst"
+      style={{ textDecoration: 'none' }}
+    >
+      <div
+        style={{
+          padding: '16px',
+          borderRadius: '12px',
+          background: '#ebf8ff',
+          border: '1px solid #bee3f8',
+          cursor: 'pointer',
+          transition: '0.2s',
+        }}
+      >
+        <div style={{ fontSize: '20px' }}>🔍</div>
+        <div style={{ fontWeight: '700', color: '#2b6cb0' }}>
+          SOC Analyst Track
+        </div>
+        <div style={{ fontSize: '12px', color: '#4a5568' }}>
+          Investigate security incidents and alerts
+        </div>
       </div>
-    </div>
-  );
-}
+    </Link>
+
+    {/* PEN TESTER CARD */}
+    <Link
+      to="/scenarios?role=penetration_tester"
+      style={{ textDecoration: 'none' }}
+    >
+      <div
+        style={{
+          padding: '16px',
+          borderRadius: '12px',
+          background: '#f3e8ff',
+          border: '1px solid #d6bcfa',
+          cursor: 'pointer',
+        }}
+      >
+        <div style={{ fontSize: '20px' }}>⚔️</div>
+        <div style={{ fontWeight: '700', color: '#553c9a' }}>
+          Penetration Tester Track
+        </div>
+        <div style={{ fontSize: '12px', color: '#4a5568' }}>
+          Find and exploit vulnerabilities ethically
+        </div>
+      </div>
+    </Link>
+
+  </div>
+</div>

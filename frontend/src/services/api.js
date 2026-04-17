@@ -10,11 +10,16 @@ console.log("API URL:", BASE_URL);
 // ================= AXIOS INSTANCE =================
 const API = axios.create({
   baseURL: BASE_URL,
+  headers: {
+    "Content-Type": "application/json",
+  },
 });
 
 // ================= TOKEN INTERCEPTOR =================
 API.interceptors.request.use((req) => {
   const token = localStorage.getItem("token");
+
+  console.log("TOKEN SENT:", token);
 
   if (token) {
     req.headers.Authorization = `Bearer ${token}`;
@@ -22,6 +27,15 @@ API.interceptors.request.use((req) => {
 
   return req;
 });
+
+// ================= ERROR DEBUG INTERCEPTOR =================
+API.interceptors.response.use(
+  (response) => response,
+  (error) => {
+    console.log("API ERROR:", error.response?.data || error.message);
+    return Promise.reject(error);
+  }
+);
 
 // ================= AUTH =================
 export const authAPI = {
@@ -52,8 +66,7 @@ export const userAPI = {
 export const progressAPI = {
   getProgress: () => API.get("/api/progress"),
 
-  updateProgress: (data) =>
-    API.post("/api/progress", data),
+  updateProgress: (data) => API.post("/api/progress", data),
 
   getStats: () => API.get("/api/progress/stats"),
 
@@ -61,5 +74,4 @@ export const progressAPI = {
     API.get(`/api/leaderboard?limit=${limit}`),
 };
 
-// ================= OPTIONAL EXPORT =================
 export default API;
