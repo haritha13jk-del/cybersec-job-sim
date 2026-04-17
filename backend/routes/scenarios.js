@@ -196,7 +196,7 @@ router.post('/:id/submit', authMiddleware, async (req, res) => {
       finalScore = Math.min(maxScore, finalScore + 10);
     }
 
-    const missingActions = correctActions.filter(a => !actions.map(normalize).includes(a));
+    const missingActions = (scenario.correct_actions||[]).filter(a=>!actions.map(normalize).includes(normalize(a)));
 
     try {
       await UserProgress.saveProgress(userId, scenarioId, {
