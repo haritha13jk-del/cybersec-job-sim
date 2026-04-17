@@ -43,21 +43,25 @@ export const authAPI = {
 export const scenarioAPI = {
   getAll: () => api.get("/api/scenarios"),
   getById: (id) => api.get(`/api/scenarios/${id}`),
+  // ✅ FIX: submit was missing — called in ScenarioDetail.js
+  submit: (id, data) => api.post(`/api/scenarios/${id}/submit`, data),
 };
 
 // ================= PROGRESS =================
 export const progressAPI = {
   getUserProgress: () => api.get("/api/progress"),
+  // ✅ FIX: getStats was missing — caused "Hr.getStats is not a function"
+  getStats: () => api.get("/api/progress/stats"),
   getLeaderboard: () => api.get("/api/leaderboard"),
   updateProgress: (data) => api.post("/api/progress", data),
-
-  // ✅ FIX: getStats was missing — this caused "Hr.getStats is not a function"
-  getStats: () => api.get("/api/progress/stats"),
 };
 
 // ================= AI =================
 export const aiAPI = {
   ask: (data) => api.post("/api/ai", data),
+  // ✅ FIX: chat and getHint were missing — called in ScenarioDetail.js
+  chat: (data) => api.post("/api/ai/chat", data),
+  getHint: (scenarioId) => api.post("/api/ai/hint", { scenarioId }),
 };
 
 export default api;
