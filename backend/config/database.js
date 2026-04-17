@@ -4,49 +4,47 @@ require('dotenv').config();
 
 /* ================= MYSQL CONNECTION ================= */
 
-// ✅ Parse MYSQL_URL manually (BEST METHOD)
-const dbUrl = new URL(process.env.MYSQL_URL);
+let mysqlPool;
 
-const mysqlPool = mysql.createPool({
-  host: dbUrl.hostname,
-  user: dbUrl.username,
-  password: dbUrl.password,
-  database: dbUrl.pathname.replace('/', ''),
-  port: dbUrl.port,
+if (process.env.MYSQL_URL) {
+  // ✅ Use full URL (BEST for Railway)
+  const dbUrl = new URL(process.env.MYSQL_URL);
 
-  waitForConnections: true,
-  connectionLimit: 10,
-  queueLimit: 0,
+  mysqlPool = mysql.createPool({
+    host: dbUrl.hostname,
+    user: dbUrl.username,
+    password: dbUrl.password,
+    database: dbUrl.pathname.replace('/', ''),
+    port: dbUrl.port,
 
-  // ✅ Required for Railway
-  ssl: {
-    rejectUnauthorized: false
-  }
-});
+    waitForConnections: true,
+    connectionLimit: 5,
+    connectTimeout: 10000,
 
-// Debug (safe)
-console.log('MySQL Config:', {
-  host: dbUrl.hostname,
-  user: dbUrl.username,
-  database: dbUrl.pathname.replace('/', ''),
-  port: dbUrl.port
-});
+    ssl: {
+      rejectUnauthorized: false
+    }
+  });
 
-// ✅ Test MySQL
+  console.log('✅ MySQL using URL connection');
+} else {
+  throw new Error('❌ MYSQL_URL not found');
+}
+
+// Test MySQL
 const testMySQL = async () => {
   try {
     const connection = await mysqlPool.getConnection();
     await connection.query('SELECT 1');
-    console.log('✅ MySQL Connected Successfully');
     connection.release();
+    console.log('✅ MySQL Connected Successfully');
   } catch (error) {
     console.error('❌ MySQL Connection Error:', error.message);
     throw error;
   }
 };
 
-
-/* ================= MONGODB CONNECTION ================= */
+/* ================= MONGODB ================= */
 
 const connectMongoDB = async () => {
   try {
@@ -57,7 +55,6 @@ const connectMongoDB = async () => {
     }
 
     await mongoose.connect(mongoUri);
-
     console.log('✅ MongoDB Connected Successfully');
 
   } catch (error) {
