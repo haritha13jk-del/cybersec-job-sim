@@ -109,15 +109,15 @@ const PORT = process.env.PORT || 5000;
 
 const startServer = async () => {
   try {
-    // ✅ Connect databases first
     await connectMongoDB();
     await testMySQL();
 
-    app.listen(PORT, () => {
+    // ✅ IMPORTANT FIX FOR RENDER
+    app.listen(PORT, '0.0.0.0', () => {
       console.log('========================================');
       console.log(' CYBERSECURITY JOB SIMULATION SYSTEM');
       console.log('========================================');
-      console.log(' Server running on: http://localhost:' + PORT);
+      console.log(` Server running on port ${PORT}`);
       console.log(' Environment: ' + process.env.NODE_ENV);
       console.log(' MySQL: Connected');
       console.log(' MongoDB: Connected');

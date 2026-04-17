@@ -4,15 +4,9 @@ require('dotenv').config();
 
 /* ================= MYSQL CONNECTION ================= */
 
-// ✅ Ensure MYSQL_URL exists
-if (!process.env.MYSQL_URL) {
-  throw new Error('❌ MYSQL_URL not found in environment variables');
-}
-
-// ✅ Parse Railway public MySQL URL
+// ✅ Parse MYSQL_URL manually (BEST METHOD)
 const dbUrl = new URL(process.env.MYSQL_URL);
 
-// ✅ Create MySQL pool
 const mysqlPool = mysql.createPool({
   host: dbUrl.hostname,
   user: dbUrl.username,
@@ -24,11 +18,13 @@ const mysqlPool = mysql.createPool({
   connectionLimit: 10,
   queueLimit: 0,
 
-  // ✅ Required for Railway (AWS-based)
-  ssl: 'Amazon RDS'
+  // ✅ Required for Railway
+  ssl: {
+    rejectUnauthorized: false
+  }
 });
 
-// 🔍 Debug (safe)
+// Debug (safe)
 console.log('MySQL Config:', {
   host: dbUrl.hostname,
   user: dbUrl.username,
@@ -36,13 +32,13 @@ console.log('MySQL Config:', {
   port: dbUrl.port
 });
 
-// ✅ Test MySQL connection
+// ✅ Test MySQL
 const testMySQL = async () => {
   try {
     const connection = await mysqlPool.getConnection();
-    await connection.query('SELECT 1'); // ensures DB responds
-    connection.release();
+    await connection.query('SELECT 1');
     console.log('✅ MySQL Connected Successfully');
+    connection.release();
   } catch (error) {
     console.error('❌ MySQL Connection Error:', error.message);
     throw error;
@@ -57,22 +53,18 @@ const connectMongoDB = async () => {
     const mongoUri = process.env.MONGODB_URI;
 
     if (!mongoUri) {
-      throw new Error('❌ MONGODB_URI not found');
+      throw new Error('MONGODB_URI missing');
     }
 
-    // ✅ Clean modern connection (no deprecated options)
     await mongoose.connect(mongoUri);
 
     console.log('✅ MongoDB Connected Successfully');
 
   } catch (error) {
     console.error('❌ MongoDB Connection Error:', error.message);
-    process.exit(1); // stop app if Mongo fails
+    process.exit(1);
   }
 };
-
-
-/* ================= EXPORTS ================= */
 
 module.exports = {
   mysqlPool,
