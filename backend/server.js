@@ -5,10 +5,9 @@ const morgan = require('morgan');
 const rateLimit = require('express-rate-limit');
 require('dotenv').config();
 
-// ✅ PostgreSQL + MongoDB
-const { pool, connectMongoDB } = require('./config/database');
+const { connectMongoDB } = require('./config/database');
 
-// ✅ Routes
+// Routes
 const authRoutes = require('./routes/auth');
 const scenarioRoutes = require('./routes/scenarios');
 const progressRoutes = require('./routes/progress');
@@ -16,45 +15,22 @@ const aiRoutes = require('./routes/ai');
 
 const app = express();
 
-/* ================= CORS ================= */
-
-const corsOptions = {
-  origin: true,
-  credentials: true,
-  methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With'],
-};
-
-app.use(cors(corsOptions));
-app.options('*', cors(corsOptions));
-
 /* ================= MIDDLEWARE ================= */
 
+app.use(cors({ origin: true, credentials: true }));
 app.use(helmet({ crossOriginResourcePolicy: false }));
 app.use(express.json());
-app.use(express.urlencoded({ extended: true }));
 app.use(morgan('dev'));
 
-/* ================= RATE LIMIT ================= */
-
-const limiter = rateLimit({
-  windowMs: (parseInt(process.env.RATE_LIMIT_WINDOW) || 15) * 60 * 1000,
-  max: parseInt(process.env.RATE_LIMIT_MAX) || 100,
-  message: {
-    success: false,
-    error: 'Too many requests, please try again later.',
-  },
-});
-
-app.use('/api/', limiter);
+app.use('/api/', rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 100,
+}));
 
 /* ================= ROUTES ================= */
 
 app.get('/', (req, res) => {
-  res.json({
-    success: true,
-    message: 'Cybersecurity Job Simulation Backend Running',
-  });
+  res.json({ success: true, message: 'Backend Running 🚀' });
 });
 
 app.use('/api/auth', authRoutes);
@@ -62,16 +38,11 @@ app.use('/api/scenarios', scenarioRoutes);
 app.use('/api/progress', progressRoutes);
 app.use('/api/ai', aiRoutes);
 
-/* ================= HEALTH CHECK ================= */
-
 app.get('/api/health', (req, res) => {
-  res.json({
-    success: true,
-    status: 'OK',
-  });
+  res.json({ success: true });
 });
 
-/* ================= ERROR HANDLING ================= */
+/* ================= ERROR ================= */
 
 app.use((req, res) => {
   res.status(404).json({
@@ -80,37 +51,20 @@ app.use((req, res) => {
   });
 });
 
-app.use((err, req, res, next) => {
-  console.error('Server error:', err.message);
-  res.status(err.status || 500).json({
-    success: false,
-    error: err.message || 'Internal server error',
-  });
-});
-
-/* ================= SERVER START ================= */
+/* ================= START ================= */
 
 const PORT = process.env.PORT || 5000;
 
 const startServer = async () => {
   try {
-    // ✅ MongoDB
     await connectMongoDB();
 
-    // ✅ Test PostgreSQL manually
-    await pool.query('SELECT 1');
-    console.log('✅ PostgreSQL Connected');
-
     app.listen(PORT, '0.0.0.0', () => {
-      console.log('========================================');
-      console.log(' Server running on port:', PORT);
-      console.log(' MongoDB: Connected');
-      console.log(' PostgreSQL: Connected');
-      console.log('========================================');
+      console.log(`✅ Server running on port ${PORT}`);
     });
 
   } catch (error) {
-    console.error('❌ Server startup error:', error.message);
+    console.error('❌ Server error:', error.message);
     process.exit(1);
   }
 };
