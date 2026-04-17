@@ -160,14 +160,15 @@ router.post('/:id/submit', authMiddleware, async (req, res) => {
       });
     }
 
-    const correctActions = scenario.correct_actions || [];
+    const normalize = s => s.toLowerCase().replace(/[^a-z0-9]+/g,"_").replace(/^_|_$/g,"");
+    const correctActions = (scenario.correct_actions || []).map(normalize);
     const maxScore = scenario.max_score || 100;
 
     let correctCount = 0;
     let feedback = [];
 
     actions.forEach(action => {
-      const isCorrect = correctActions.includes(action);
+      const isCorrect = correctActions.includes(normalize(action));
 
       if (isCorrect) correctCount++;
 
@@ -195,7 +196,7 @@ router.post('/:id/submit', authMiddleware, async (req, res) => {
       finalScore = Math.min(maxScore, finalScore + 10);
     }
 
-    const missingActions = correctActions.filter(a => !actions.includes(a));
+    const missingActions = correctActions.filter(a => !actions.map(normalize).includes(a));
 
     try {
       await UserProgress.saveProgress(userId, scenarioId, {
