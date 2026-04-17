@@ -97,14 +97,7 @@ router.get('/random/:role/:difficulty', authMiddleware, async (req, res) => {
 /* ================= GET SINGLE SCENARIO ================= */
 router.get('/:id', authMiddleware, async (req, res) => {
   try {
-    const scenarioId = Number(req.params.id);
-
-    if (isNaN(scenarioId)) {
-      return res.status(400).json({
-        success: false,
-        error: 'Invalid scenario ID'
-      });
-    }
+    const scenarioId = req.params.id;
 
     const scenario = await Scenario.getById(scenarioId);
 
@@ -147,16 +140,9 @@ router.get('/:id', authMiddleware, async (req, res) => {
 /* ================= SUBMIT SOLUTION ================= */
 router.post('/:id/submit', authMiddleware, async (req, res) => {
   try {
-    const scenarioId = Number(req.params.id);
+    const scenarioId = req.params.id;
     const userId = req.user.id;
     const { actions, timeTaken = 0, hintsUsed = 0 } = req.body;
-
-    if (isNaN(scenarioId)) {
-      return res.status(400).json({
-        success: false,
-        error: 'Invalid scenario ID'
-      });
-    }
 
     if (!Array.isArray(actions)) {
       return res.status(400).json({
@@ -211,7 +197,6 @@ router.post('/:id/submit', authMiddleware, async (req, res) => {
 
     const missingActions = correctActions.filter(a => !actions.includes(a));
 
-    // 🚨 IMPORTANT SAFETY FIX
     try {
       await UserProgress.saveProgress(userId, scenarioId, {
         score: finalScore,
@@ -225,7 +210,6 @@ router.post('/:id/submit', authMiddleware, async (req, res) => {
       console.error("Progress save error:", e.message);
     }
 
-    // safe log
     try {
       await ActivityLog.logActivity({
         userId,
