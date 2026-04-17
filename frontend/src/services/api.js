@@ -1,7 +1,7 @@
 import axios from 'axios';
 
 // ✅ PRODUCTION BACKEND URL (Railway)
-const API_URL = 'https://cybersec-job-sim-production.up.railway.app/api';
+const API_URL = 'https://cybersec-job-sim.onrender.com';
 
 const api = axios.create({
   baseURL: API_URL,
