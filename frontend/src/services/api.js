@@ -1,8 +1,11 @@
 import axios from "axios";
+
 console.log("API URL:", process.env.REACT_APP_API_URL);
 
 const API = axios.create({
-  baseURL: process.env.REACT_APP_API_URL || "https://cybersec-job-sim.onrender.com",
+  baseURL:
+    process.env.REACT_APP_API_URL ||
+    "https://cybersec-job-sim.onrender.com",
 });
 
 // 🔐 Attach token automatically
