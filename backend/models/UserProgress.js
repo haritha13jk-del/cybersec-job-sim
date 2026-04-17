@@ -1,139 +1,189 @@
-const { mysqlPool } = require('../config/database');
+const mongoose = require('mongoose');
+
+/* ================= SCHEMA ================= */
+
+const UserProgressSchema = new mongoose.Schema({
+  userId: {
+    type: String,
+    required: true,
+  },
+  scenarioId: {
+    type: String,
+    required: true,
+  },
+  score: {
+    type: Number,
+    default: 0,
+  },
+  maxScore: {
+    type: Number,
+    default: 100,
+  },
+  timeTaken: {
+    type: Number,
+    default: 0,
+  },
+  actionsTaken: {
+    type: [String],
+    default: [],
+  },
+  hintsUsed: {
+    type: Number,
+    default: 0,
+  },
+  completed: {
+    type: Boolean,
+    default: false,
+  },
+  attemptNumber: {
+    type: Number,
+    default: 1,
+  },
+  completedAt: {
+    type: Date,
+    default: Date.now,
+  },
+}, { timestamps: true });
+
+const UserProgressModel = mongoose.model('UserProgress', UserProgressSchema);
+
+/* ================= CLASS ================= */
 
 class UserProgress {
+
+  // ✅ Save Progress
   static async saveProgress(userId, scenarioId, progressData) {
     const { score, maxScore, timeTaken, actionsTaken, hintsUsed, completed } = progressData;
-    const [existing] = await mysqlPool.query(
-      'SELECT MAX(attempt_number) as max_attempt FROM user_progress WHERE user_id = ? AND scenario_id = ?',
-      [userId, scenarioId]
-    );
-    const attemptNumber = (existing[0].max_attempt || 0) + 1;
-    const query = `INSERT INTO user_progress (user_id, scenario_id, score, time_taken, actions_taken, hints_used, completed, attempt_number, completed_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, NOW())`;
-    const [result] = await mysqlPool.query(query, [
-      userId, scenarioId, score, timeTaken,
-      JSON.stringify(actionsTaken), hintsUsed, completed, attemptNumber
-    ]);
-    await UserProgress.updateLeaderboard(userId);
-    return result.insertId;
+
+    // Get last attempt
+    const lastAttempt = await UserProgressModel
+      .findOne({ userId, scenarioId })
+      .sort({ attemptNumber: -1 });
+
+    const attemptNumber = lastAttempt ? lastAttempt.attemptNumber + 1 : 1;
+
+    const progress = new UserProgressModel({
+      userId,
+      scenarioId,
+      score,
+      maxScore,
+      timeTaken,
+      actionsTaken,
+      hintsUsed,
+      completed,
+      attemptNumber,
+      completedAt: new Date(),
+    });
+
+    await progress.save();
+
+    return progress._id;
   }
 
+  // ✅ Get User Progress
   static async getUserProgress(userId) {
     try {
-      const query = `
-        SELECT 
-          up.id, up.user_id, up.scenario_id, up.score, up.max_score, 
-          up.time_taken, up.hints_used, up.completed, up.completed_at, 
-          up.attempt_number,
-          s.title, s.role, s.difficulty, s.category, 
-          s.max_score as scenario_max_score
-        FROM user_progress up
-        JOIN scenarios s ON up.scenario_id = s.id
-        WHERE up.user_id = ?
-        ORDER BY up.completed_at DESC
-      `;
-      const [rows] = await mysqlPool.query(query, [userId]);
-      return rows.map(row => ({
-        ...row,
-        actions_taken: []
-      }));
+      return await UserProgressModel
+        .find({ userId })
+        .sort({ completedAt: -1 });
     } catch (error) {
       console.error('getUserProgress error:', error);
       return [];
     }
   }
 
+  // ✅ Get User Stats
   static async getUserStats(userId) {
     try {
-      const query = `
-        SELECT 
-          COUNT(*) as total_attempts,
-          SUM(CASE WHEN completed = 1 THEN 1 ELSE 0 END) as completed_scenarios,
-          AVG(CASE WHEN completed = 1 THEN score ELSE NULL END) as avg_score,
-          SUM(time_taken) as total_time,
-          MAX(score) as best_score
-        FROM user_progress
-        WHERE user_id = ?
-      `;
-      const [rows] = await mysqlPool.query(query, [userId]);
-      return rows[0];
+      const data = await UserProgressModel.find({ userId });
+
+      if (data.length === 0) return {};
+
+      const totalAttempts = data.length;
+      const completedScenarios = data.filter(p => p.completed).length;
+      const avgScore =
+        data.filter(p => p.completed).reduce((sum, p) => sum + p.score, 0) /
+        (completedScenarios || 1);
+
+      const totalTime = data.reduce((sum, p) => sum + (p.timeTaken || 0), 0);
+      const bestScore = Math.max(...data.map(p => p.score));
+
+      return {
+        total_attempts: totalAttempts,
+        completed_scenarios: completedScenarios,
+        avg_score: avgScore,
+        total_time: totalTime,
+        best_score: bestScore,
+      };
+
     } catch (error) {
       console.error('getUserStats error:', error);
       return {};
     }
   }
 
+  // ✅ Performance by Role (simplified)
   static async getPerformanceByRole(userId) {
     try {
-      const query = `
-        SELECT 
-          s.role,
-          COUNT(*) as attempts,
-          SUM(CASE WHEN up.completed = 1 THEN 1 ELSE 0 END) as completed,
-          AVG(CASE WHEN up.completed = 1 THEN up.score ELSE NULL END) as avg_score
-        FROM user_progress up
-        JOIN scenarios s ON up.scenario_id = s.id
-        WHERE up.user_id = ?
-        GROUP BY s.role
-      `;
-      const [rows] = await mysqlPool.query(query, [userId]);
-      return rows;
+      const data = await UserProgressModel.find({ userId });
+
+      const roleMap = {};
+
+      data.forEach(p => {
+        const role = p.role || 'unknown';
+
+        if (!roleMap[role]) {
+          roleMap[role] = {
+            role,
+            attempts: 0,
+            completed: 0,
+            totalScore: 0,
+          };
+        }
+
+        roleMap[role].attempts++;
+        if (p.completed) {
+          roleMap[role].completed++;
+          roleMap[role].totalScore += p.score;
+        }
+      });
+
+      return Object.values(roleMap).map(r => ({
+        role: r.role,
+        attempts: r.attempts,
+        completed: r.completed,
+        avg_score: r.completed ? r.totalScore / r.completed : 0,
+      }));
+
     } catch (error) {
       console.error('getPerformanceByRole error:', error);
       return [];
     }
   }
 
-  static async updateLeaderboard(userId) {
-    try {
-      const [stats] = await mysqlPool.query(
-        'SELECT SUM(score) as total_score, COUNT(DISTINCT scenario_id) as scenarios_completed FROM user_progress WHERE user_id = ? AND completed = 1',
-        [userId]
-      );
-      const { total_score, scenarios_completed } = stats[0];
-      await mysqlPool.query(
-        'INSERT INTO leaderboard (user_id, total_score, scenarios_completed) VALUES (?, ?, ?) ON DUPLICATE KEY UPDATE total_score = VALUES(total_score), scenarios_completed = VALUES(scenarios_completed)',
-        [userId, total_score || 0, scenarios_completed || 0]
-      );
-      await UserProgress.updateRankings();
-    } catch (error) {
-      console.error('updateLeaderboard error:', error);
-    }
-  }
-
-  static async updateRankings() {
-    try {
-      const query = `
-        UPDATE leaderboard l1
-        JOIN (
-          SELECT user_id, 
-          ROW_NUMBER() OVER (ORDER BY total_score DESC, scenarios_completed DESC) as new_rank
-          FROM leaderboard
-        ) l2 ON l1.user_id = l2.user_id
-        SET l1.rank_position = l2.new_rank
-      `;
-      await mysqlPool.query(query);
-    } catch (error) {
-      console.error('updateRankings error:', error);
-    }
-  }
-
+  // ✅ Leaderboard (simple version)
   static async getLeaderboard(limit = 10) {
     try {
-      const query = `
-        SELECT 
-          l.rank_position,
-          u.username,
-          u.full_name,
-          l.total_score,
-          l.scenarios_completed,
-          l.last_updated
-        FROM leaderboard l
-        JOIN users u ON l.user_id = u.id
-        ORDER BY l.rank_position
-        LIMIT ?
-      `;
-      const [rows] = await mysqlPool.query(query, [limit]);
-      return rows;
+      const leaderboard = await UserProgressModel.aggregate([
+        { $match: { completed: true } },
+        {
+          $group: {
+            _id: "$userId",
+            totalScore: { $sum: "$score" },
+            scenariosCompleted: { $sum: 1 },
+          },
+        },
+        { $sort: { totalScore: -1 } },
+        { $limit: limit },
+      ]);
+
+      return leaderboard.map((user, index) => ({
+        rank_position: index + 1,
+        userId: user._id,
+        total_score: user.totalScore,
+        scenarios_completed: user.scenariosCompleted,
+      }));
+
     } catch (error) {
       console.error('getLeaderboard error:', error);
       return [];
