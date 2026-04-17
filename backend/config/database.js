@@ -1,13 +1,10 @@
-const path = require('path');
-require('dotenv').config({ path: path.join(__dirname, '../.env') });
-
 const mysql = require('mysql2/promise');
 const mongoose = require('mongoose');
+require('dotenv').config();
 
 /* ================= MYSQL CONNECTION ================= */
 
 const mysqlConfig = {
-  // ✅ Checks Railway's auto-generated names first, then your local .env names
   host: process.env.MYSQLHOST || process.env.MYSQL_HOST || 'localhost',
   user: process.env.MYSQLUSER || process.env.MYSQL_USER || 'root',
   password: process.env.MYSQLPASSWORD || process.env.MYSQL_PASSWORD || '',
@@ -17,18 +14,16 @@ const mysqlConfig = {
   queueLimit: 0
 };
 
-// 🔍 Debug log (IMPORTANT)
+// Debug log (safe)
 console.log('MySQL Config:', {
   host: mysqlConfig.host,
   user: mysqlConfig.user,
   database: mysqlConfig.database
-  // ✅ Never log password
 });
 
-// ✅ Create pool safely
 const mysqlPool = mysql.createPool(mysqlConfig);
 
-// ✅ Test connection
+// Test MySQL connection
 const testMySQL = async () => {
   try {
     const connection = await mysqlPool.getConnection();
@@ -40,6 +35,7 @@ const testMySQL = async () => {
   }
 };
 
+
 /* ================= MONGODB CONNECTION ================= */
 
 const connectMongoDB = async () => {
@@ -47,17 +43,22 @@ const connectMongoDB = async () => {
     const mongoUri = process.env.MONGODB_URI;
 
     if (!mongoUri) {
-      throw new Error('MongoDB URI missing');
+      throw new Error('❌ MONGODB_URI not found in environment variables');
     }
 
-    await mongoose.connect(mongoUri);
+    await mongoose.connect(mongoUri, {
+      useNewUrlParser: true,
+      useUnifiedTopology: true
+    });
+
     console.log('✅ MongoDB Connected Successfully');
 
   } catch (error) {
     console.error('❌ MongoDB Connection Error:', error.message);
-    throw error;
+    process.exit(1); // stop server if DB fails
   }
 };
+
 
 module.exports = {
   mysqlPool,
