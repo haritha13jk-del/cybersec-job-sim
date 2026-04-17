@@ -1,59 +1,42 @@
 const express = require('express');
 const { generateAIResponse, generateHint } = require('../config/gemini');
-const Scenario = require('../models/Scenario');
-const ActivityLog = require('../models/ActivityLog');
-const { mysqlPool } = require('../config/database');
+const { pool } = require('../config/database'); // ✅ FIXED
 const { authMiddleware } = require('../middleware/auth');
 
 const router = express.Router();
 
-// 🔹 AI Chat Route
+
+// 🔹 AI CHAT
 router.post('/chat', authMiddleware, async (req, res) => {
   try {
-    if (!req.user) {
-      return res.status(401).json({ success: false, error: "Unauthorized" });
-    }
-
     const { message, scenarioId } = req.body;
     const userId = req.user.id;
 
     if (!message || message.trim().length === 0) {
-      return res.status(400).json({ success: false, error: 'Message is required' });
-    }
-
-    let scenario = null;
-    if (scenarioId) {
-      scenario = await Scenario.getById(scenarioId);
-    }
-
-    // ✅ Safe Gemini call
-    let aiResponse;
-    try {
-      aiResponse = await generateAIResponse(message, scenario);
-    } catch (err) {
-      console.error("Gemini error:", err);
-      return res.status(500).json({
+      return res.status(400).json({
         success: false,
-        error: "AI service temporarily unavailable"
+        error: 'Message is required'
       });
     }
 
-    // ✅ Save chat
-    await mysqlPool.query(
+    // ✅ AI response
+    let aiResponse;
+    try {
+      aiResponse = await generateAIResponse(message, scenarioId);
+    } catch (err) {
+      console.error("Gemini error:", err.message);
+      return res.status(500).json({
+        success: false,
+        error: "AI service unavailable"
+      });
+    }
+
+    // ✅ Save chat (PostgreSQL)
+    await pool.query(
       `INSERT INTO chat_history (user_id, scenario_id, message, response)
-       VALUES (?, ?, ?, ?)`,
+       VALUES ($1, $2, $3, $4)`,
       [userId, scenarioId || null, message, aiResponse.message]
     );
-
-    // ✅ Log activity
-    await ActivityLog.logActivity({
-      userId,
-      scenarioId: scenarioId || null,
-      action: 'AI_CHAT',
-      details: { messageLength: message.length },
-      ipAddress: req.ip,
-      userAgent: req.headers['user-agent']
-    });
 
     res.json({
       success: true,
@@ -62,74 +45,53 @@ router.post('/chat', authMiddleware, async (req, res) => {
     });
 
   } catch (error) {
-    console.error('AI chat error:', error);
+    console.error('AI chat error:', error.message);
+
     res.status(500).json({
       success: false,
-      error: 'Failed to generate AI response'
+      error: error.message
     });
   }
 });
 
 
-// 🔹 Hint Route
+// 🔹 HINT
 router.post('/hint', authMiddleware, async (req, res) => {
   try {
-    if (!req.user) {
-      return res.status(401).json({ success: false, error: "Unauthorized" });
-    }
-
     const { scenarioId } = req.body;
     const userId = req.user.id;
 
     if (!scenarioId) {
-      return res.status(400).json({ success: false, error: 'Scenario ID is required' });
+      return res.status(400).json({
+        success: false,
+        error: 'Scenario ID is required'
+      });
     }
 
-    const scenario = await Scenario.getById(scenarioId);
-
-    if (!scenario) {
-      return res.status(404).json({ success: false, error: 'Scenario not found' });
-    }
-
-    // ✅ Correct MySQL result handling
-    const [rows] = await mysqlPool.query(
-      `SELECT COUNT(*) as count 
-       FROM chat_history 
-       WHERE user_id = ? AND scenario_id = ? AND message LIKE ?`,
+    // ✅ Count previous hints
+    const result = await pool.query(
+      `SELECT COUNT(*) FROM chat_history 
+       WHERE user_id = $1 AND scenario_id = $2 AND message LIKE $3`,
       [userId, scenarioId, '%hint%']
     );
 
-    const attemptNumber = rows[0].count + 1;
+    const attemptNumber = parseInt(result.rows[0].count) + 1;
 
     let hint;
 
-    if (scenario.hints && scenario.hints.length > 0 && attemptNumber <= scenario.hints.length) {
-      hint = scenario.hints[attemptNumber - 1];
-    } else {
-      try {
-        hint = await generateHint(scenario, attemptNumber);
-      } catch (err) {
-        console.error("Hint AI error:", err);
-        hint = "Unable to generate hint right now. Try again later.";
-      }
+    try {
+      hint = await generateHint(scenarioId, attemptNumber);
+    } catch (err) {
+      console.error("Hint error:", err.message);
+      hint = "Unable to generate hint right now.";
     }
 
-    // ✅ Save hint request
-    await mysqlPool.query(
+    // ✅ Save hint
+    await pool.query(
       `INSERT INTO chat_history (user_id, scenario_id, message, response)
-       VALUES (?, ?, ?, ?)`,
-      [userId, scenarioId, `Request for hint #${attemptNumber}`, hint]
+       VALUES ($1, $2, $3, $4)`,
+      [userId, scenarioId, `hint request ${attemptNumber}`, hint]
     );
-
-    // ✅ Log activity
-    await ActivityLog.logActivity({
-      userId,
-      scenarioId,
-      action: 'REQUEST_HINT',
-      details: { attemptNumber },
-      ipAddress: req.ip,
-      userAgent: req.headers['user-agent']
-    });
 
     res.json({
       success: true,
@@ -138,54 +100,51 @@ router.post('/hint', authMiddleware, async (req, res) => {
     });
 
   } catch (error) {
-    console.error('Hint generation error:', error);
+    console.error('Hint error:', error.message);
+
     res.status(500).json({
       success: false,
-      error: 'Failed to generate hint'
+      error: error.message
     });
   }
 });
 
 
-// 🔹 Chat History Route
+// 🔹 CHAT HISTORY
 router.get('/history', authMiddleware, async (req, res) => {
   try {
-    if (!req.user) {
-      return res.status(401).json({ success: false, error: "Unauthorized" });
-    }
-
     const userId = req.user.id;
     const { scenarioId, limit = 50 } = req.query;
 
     let query = `
-      SELECT ch.*, s.title as scenario_title
-      FROM chat_history ch
-      LEFT JOIN scenarios s ON ch.scenario_id = s.id
-      WHERE ch.user_id = ?
+      SELECT *
+      FROM chat_history
+      WHERE user_id = $1
     `;
 
     const params = [userId];
 
     if (scenarioId) {
-      query += ' AND ch.scenario_id = ?';
+      query += ` AND scenario_id = $2`;
       params.push(scenarioId);
     }
 
-    query += ' ORDER BY ch.created_at DESC LIMIT ?';
+    query += ` ORDER BY created_at DESC LIMIT $${params.length + 1}`;
     params.push(parseInt(limit));
 
-    const [history] = await mysqlPool.query(query, params);
+    const result = await pool.query(query, params);
 
     res.json({
       success: true,
-      history
+      history: result.rows
     });
 
   } catch (error) {
-    console.error('Get chat history error:', error);
+    console.error('History error:', error.message);
+
     res.status(500).json({
       success: false,
-      error: 'Failed to fetch chat history'
+      error: error.message
     });
   }
 });
