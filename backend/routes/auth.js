@@ -1,19 +1,29 @@
 const express = require('express');
 const jwt = require('jsonwebtoken');
 const bcrypt = require('bcryptjs');
+const mongoose = require('mongoose');
 
-const { pool } = require('../config/database'); // ✅ IMPORTANT
 const { authMiddleware } = require('../middleware/auth');
 
 const router = express.Router();
 
+/* ================= USER MODEL ================= */
+const userSchema = new mongoose.Schema({
+  username: { type: String, required: true },
+  email: { type: String, required: true, unique: true },
+  password: { type: String, required: true },
+  fullName: { type: String },
+  role: { type: String, default: 'user' },
+  createdAt: { type: Date, default: Date.now }
+});
 
-// ================= REGISTER =================
+const User = mongoose.model('User', userSchema);
+
+/* ================= REGISTER ================= */
 router.post('/register', async (req, res) => {
   try {
     const { username, email, password, fullName } = req.body;
 
-    // ✅ Validation
     if (!username || !email || !password) {
       return res.status(400).json({
         success: false,
@@ -36,34 +46,29 @@ router.post('/register', async (req, res) => {
       });
     }
 
-    // ✅ Check if user exists
-    const existingUser = await pool.query(
-      "SELECT * FROM users WHERE email = $1",
-      [email]
-    );
+    const existingUser = await User.findOne({ email });
 
-    if (existingUser.rows.length > 0) {
+    if (existingUser) {
       return res.status(400).json({
         success: false,
         error: 'Email already registered'
       });
     }
 
-    // ✅ Hash password
     const hashedPassword = await bcrypt.hash(password, 10);
 
-    // ✅ Insert user
-    const result = await pool.query(
-      `INSERT INTO users (username, email, password, full_name, role)
-       VALUES ($1, $2, $3, $4, $5)
-       RETURNING id`,
-      [username, email, hashedPassword, fullName || username, 'user']
-    );
+    const user = await User.create({
+      username,
+      email,
+      password: hashedPassword,
+      fullName: fullName || username,
+      role: 'user'
+    });
 
     res.status(201).json({
       success: true,
       message: 'User registered successfully',
-      userId: result.rows[0].id
+      userId: user._id
     });
 
   } catch (error) {
@@ -77,12 +82,11 @@ router.post('/register', async (req, res) => {
 });
 
 
-// ================= LOGIN =================
+/* ================= LOGIN ================= */
 router.post('/login', async (req, res) => {
   try {
     const { email, password } = req.body;
 
-    // ✅ Validation
     if (!email || !password) {
       return res.status(400).json({
         success: false,
@@ -90,13 +94,7 @@ router.post('/login', async (req, res) => {
       });
     }
 
-    // ✅ Find user
-    const result = await pool.query(
-      "SELECT * FROM users WHERE email = $1",
-      [email]
-    );
-
-    const user = result.rows[0];
+    const user = await User.findOne({ email });
 
     if (!user) {
       return res.status(401).json({
@@ -105,17 +103,15 @@ router.post('/login', async (req, res) => {
       });
     }
 
-    // ✅ Check password
-    const isValidPassword = await bcrypt.compare(password, user.password);
+    const isValid = await bcrypt.compare(password, user.password);
 
-    if (!isValidPassword) {
+    if (!isValid) {
       return res.status(401).json({
         success: false,
         error: 'Invalid email or password'
       });
     }
 
-    // ❌ JWT missing
     if (!process.env.JWT_SECRET) {
       return res.status(500).json({
         success: false,
@@ -123,10 +119,9 @@ router.post('/login', async (req, res) => {
       });
     }
 
-    // ✅ Create token
     const token = jwt.sign(
       {
-        id: user.id,
+        id: user._id,
         email: user.email,
         username: user.username,
         role: user.role
@@ -139,10 +134,10 @@ router.post('/login', async (req, res) => {
       success: true,
       token,
       user: {
-        id: user.id,
+        id: user._id,
         username: user.username,
         email: user.email,
-        fullName: user.full_name,
+        fullName: user.fullName,
         role: user.role
       }
     });
@@ -158,15 +153,10 @@ router.post('/login', async (req, res) => {
 });
 
 
-// ================= GET CURRENT USER =================
+/* ================= GET CURRENT USER ================= */
 router.get('/me', authMiddleware, async (req, res) => {
   try {
-    const result = await pool.query(
-      "SELECT id, username, email, full_name, role FROM users WHERE id = $1",
-      [req.user.id]
-    );
-
-    const user = result.rows[0];
+    const user = await User.findById(req.user.id).select('-password');
 
     if (!user) {
       return res.status(404).json({
@@ -191,20 +181,21 @@ router.get('/me', authMiddleware, async (req, res) => {
 });
 
 
-// ================= UPDATE PROFILE =================
+/* ================= UPDATE PROFILE ================= */
 router.put('/profile', authMiddleware, async (req, res) => {
   try {
     const { fullName } = req.body;
 
-    const result = await pool.query(
-      `UPDATE users SET full_name = $1 WHERE id = $2 RETURNING *`,
-      [fullName, req.user.id]
-    );
+    const user = await User.findByIdAndUpdate(
+      req.user.id,
+      { fullName },
+      { new: true }
+    ).select('-password');
 
     res.json({
       success: true,
       message: 'Profile updated successfully',
-      user: result.rows[0]
+      user
     });
 
   } catch (error) {
