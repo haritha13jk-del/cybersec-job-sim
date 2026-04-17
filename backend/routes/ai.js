@@ -1,12 +1,25 @@
 const express = require('express');
 const { generateAIResponse, generateHint } = require('../config/gemini');
-const { pool } = require('../config/database'); // ✅ FIXED
+const ActivityLog = require('../models/ActivityLog');
 const { authMiddleware } = require('../middleware/auth');
 
 const router = express.Router();
 
+/* ================= CHAT MODEL ================= */
+const mongoose = require('mongoose');
 
-// 🔹 AI CHAT
+const chatSchema = new mongoose.Schema({
+  userId: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
+  scenarioId: { type: Number, default: null },
+  message: String,
+  response: String,
+  createdAt: { type: Date, default: Date.now }
+});
+
+const Chat = mongoose.model('Chat', chatSchema);
+
+
+/* ================= AI CHAT ================= */
 router.post('/chat', authMiddleware, async (req, res) => {
   try {
     const { message, scenarioId } = req.body;
@@ -31,12 +44,23 @@ router.post('/chat', authMiddleware, async (req, res) => {
       });
     }
 
-    // ✅ Save chat (PostgreSQL)
-    await pool.query(
-      `INSERT INTO chat_history (user_id, scenario_id, message, response)
-       VALUES ($1, $2, $3, $4)`,
-      [userId, scenarioId || null, message, aiResponse.message]
-    );
+    // ✅ Save chat (MongoDB)
+    await Chat.create({
+      userId,
+      scenarioId: scenarioId || null,
+      message,
+      response: aiResponse.message
+    });
+
+    // ✅ Log activity
+    await ActivityLog.logActivity({
+      userId,
+      scenarioId: scenarioId || null,
+      action: 'AI_CHAT',
+      details: { messageLength: message.length },
+      ipAddress: req.ip,
+      userAgent: req.headers['user-agent']
+    });
 
     res.json({
       success: true,
@@ -55,7 +79,7 @@ router.post('/chat', authMiddleware, async (req, res) => {
 });
 
 
-// 🔹 HINT
+/* ================= HINT ================= */
 router.post('/hint', authMiddleware, async (req, res) => {
   try {
     const { scenarioId } = req.body;
@@ -69,13 +93,13 @@ router.post('/hint', authMiddleware, async (req, res) => {
     }
 
     // ✅ Count previous hints
-    const result = await pool.query(
-      `SELECT COUNT(*) FROM chat_history 
-       WHERE user_id = $1 AND scenario_id = $2 AND message LIKE $3`,
-      [userId, scenarioId, '%hint%']
-    );
+    const count = await Chat.countDocuments({
+      userId,
+      scenarioId,
+      message: { $regex: /hint/i }
+    });
 
-    const attemptNumber = parseInt(result.rows[0].count) + 1;
+    const attemptNumber = count + 1;
 
     let hint;
 
@@ -87,11 +111,22 @@ router.post('/hint', authMiddleware, async (req, res) => {
     }
 
     // ✅ Save hint
-    await pool.query(
-      `INSERT INTO chat_history (user_id, scenario_id, message, response)
-       VALUES ($1, $2, $3, $4)`,
-      [userId, scenarioId, `hint request ${attemptNumber}`, hint]
-    );
+    await Chat.create({
+      userId,
+      scenarioId,
+      message: `hint request ${attemptNumber}`,
+      response: hint
+    });
+
+    // ✅ Log activity
+    await ActivityLog.logActivity({
+      userId,
+      scenarioId,
+      action: 'REQUEST_HINT',
+      details: { attemptNumber },
+      ipAddress: req.ip,
+      userAgent: req.headers['user-agent']
+    });
 
     res.json({
       success: true,
@@ -110,33 +145,25 @@ router.post('/hint', authMiddleware, async (req, res) => {
 });
 
 
-// 🔹 CHAT HISTORY
+/* ================= HISTORY ================= */
 router.get('/history', authMiddleware, async (req, res) => {
   try {
     const userId = req.user.id;
     const { scenarioId, limit = 50 } = req.query;
 
-    let query = `
-      SELECT *
-      FROM chat_history
-      WHERE user_id = $1
-    `;
-
-    const params = [userId];
+    const filter = { userId };
 
     if (scenarioId) {
-      query += ` AND scenario_id = $2`;
-      params.push(scenarioId);
+      filter.scenarioId = scenarioId;
     }
 
-    query += ` ORDER BY created_at DESC LIMIT $${params.length + 1}`;
-    params.push(parseInt(limit));
-
-    const result = await pool.query(query, params);
+    const history = await Chat.find(filter)
+      .sort({ createdAt: -1 })
+      .limit(parseInt(limit));
 
     res.json({
       success: true,
-      history: result.rows
+      history
     });
 
   } catch (error) {

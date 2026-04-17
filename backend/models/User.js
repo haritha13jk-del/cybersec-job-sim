@@ -1,9 +1,7 @@
 const mongoose = require('mongoose');
 const bcrypt = require('bcryptjs');
 
-/* ================= SCHEMA ================= */
-
-const UserSchema = new mongoose.Schema({
+const userSchema = new mongoose.Schema({
   username: {
     type: String,
     required: true,
@@ -18,72 +16,45 @@ const UserSchema = new mongoose.Schema({
     type: String,
     required: true,
   },
-  fullName: {
-    type: String,
-  },
+  fullName: String,
   role: {
     type: String,
     default: 'student',
   },
 }, { timestamps: true });
 
-const UserModel = mongoose.model('User', UserSchema);
+/* ================= REGISTER ================= */
+userSchema.statics.register = async function(username, email, password, fullName) {
+  const hashedPassword = await bcrypt.hash(password, 10);
 
-/* ================= CLASS ================= */
+  const user = new this({
+    username,
+    email,
+    password: hashedPassword,
+    fullName,
+  });
 
-class User {
+  await user.save();
+  return user._id;
+};
 
-  // ✅ Register
-  static async register(username, email, password, fullName, role = 'student') {
-    const hashedPassword = await bcrypt.hash(password, 10);
+/* ================= FIND ================= */
+userSchema.statics.findByEmail = async function(email) {
+  return await this.findOne({ email });
+};
 
-    const user = new UserModel({
-      username,
-      email,
-      password: hashedPassword,
-      fullName,
-      role,
-    });
+userSchema.statics.findById = async function(id) {
+  return await this.findById(id).select('-password');
+};
 
-    await user.save();
+/* ================= VERIFY PASSWORD ================= */
+userSchema.statics.verifyPassword = async function(plain, hash) {
+  return await bcrypt.compare(plain, hash);
+};
 
-    return user._id;
-  }
+/* ================= UPDATE ================= */
+userSchema.statics.updateProfile = async function(userId, updates) {
+  return await this.findByIdAndUpdate(userId, updates, { new: true });
+};
 
-  // ✅ Find by Email
-  static async findByEmail(email) {
-    return await UserModel.findOne({ email });
-  }
-
-  // ✅ Find by ID
-  static async findById(id) {
-    return await UserModel.findById(id).select('-password');
-  }
-
-  // ✅ Verify Password
-  static async verifyPassword(plainPassword, hashedPassword) {
-    return await bcrypt.compare(plainPassword, hashedPassword);
-  }
-
-  // ✅ Update Profile
-  static async updateProfile(userId, updates) {
-    const allowedFields = ['fullName', 'username'];
-
-    const updateData = {};
-    for (const key of allowedFields) {
-      if (updates[key]) {
-        updateData[key] = updates[key];
-      }
-    }
-
-    if (Object.keys(updateData).length === 0) {
-      throw new Error('No valid fields to update');
-    }
-
-    await UserModel.findByIdAndUpdate(userId, updateData);
-
-    return await User.findById(userId);
-  }
-}
-
-module.exports = User;
+module.exports = mongoose.model('User', userSchema);
