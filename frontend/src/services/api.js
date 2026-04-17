@@ -44,13 +44,15 @@ export const progressAPI = {
   getProgress: () => API.get("/api/progress"),
   updateProgress: (data) => API.post("/api/progress", data),
 
-  // ✅ REQUIRED (Dashboard.js)
+  // 🔥 ADD THESE (REQUIRED)
   getStats: () => API.get("/api/progress/stats"),
-
-  // ✅ REQUIRED (Leaderboard.js)
   getLeaderboard: (limit = 10) =>
     API.get(`/api/leaderboard?limit=${limit}`),
 };
 
 
-export default API;
+// ================= AUTH (ADD THIS TOO) =================
+export const authAPI = {
+  login: (data) => API.post("/api/auth/login", data),
+  register: (data) => API.post("/api/auth/register", data),
+};
