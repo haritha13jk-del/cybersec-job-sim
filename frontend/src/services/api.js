@@ -1,39 +1,46 @@
 import axios from "axios";
 
-const API_URL = "https://cybersec-job-sim.onrender.com/api";
+const API_BASE_URL =
+  process.env.REACT_APP_API_URL ||
+  "https://cybersec-job-sim.onrender.com";
 
+// Axios instance
 const api = axios.create({
-  baseURL: API_URL,
+  baseURL: API_BASE_URL,
 });
 
-// attach token automatically
+// Attach JWT token automatically
 api.interceptors.request.use((config) => {
   const token = localStorage.getItem("token");
+
   if (token) {
     config.headers.Authorization = `Bearer ${token}`;
   }
+
   return config;
 });
 
-// AUTH
+// ================= AUTH =================
 export const authAPI = {
-  login: (data) => api.post("/auth/login", data),
-  register: (data) => api.post("/auth/register", data),
+  login: (data) => api.post("/api/auth/login", data),
+  register: (data) => api.post("/api/auth/register", data),
 };
 
-// SCENARIOS
+// ================= SCENARIOS =================
 export const scenarioAPI = {
-  getAll: () => api.get("/scenarios"),
-  getById: (id) => api.get(`/scenarios/${id}`),
+  getAll: () => api.get("/api/scenarios"),
+  getById: (id) => api.get(`/api/scenarios/${id}`),
 };
 
-// PROGRESS  ✅ (THIS FIXES YOUR ERROR)
+// ================= PROGRESS =================
 export const progressAPI = {
-  get: () => api.get("/progress"),
-  update: (data) => api.post("/progress", data),
+  getUserProgress: () => api.get("/api/progress"),
+  updateProgress: (data) => api.post("/api/progress", data),
 };
 
-// AI (if used)
+// ================= AI =================
 export const aiAPI = {
-  ask: (data) => api.post("/ai", data),
+  ask: (data) => api.post("/api/ai", data),
 };
+
+export default api;

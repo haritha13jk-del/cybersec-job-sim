@@ -1,22 +1,19 @@
-import React, { useState, useEffect } from 'react';
-import { Link } from 'react-router-dom';
-import { scenarioAPI } from '../services/api';
-import Navbar from '../components/Navbar';
+import React, { useState, useEffect } from "react";
+import { Link } from "react-router-dom";
+import { scenarioAPI } from "../services/api";
+import Navbar from "../components/Navbar";
 
 export default function Scenarios() {
   const [scenarios, setScenarios] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [filter, setFilter] = useState({ role: '', difficulty: '' });
+  const [filter, setFilter] = useState({ role: "", difficulty: "" });
 
-  // FETCH DATA (FIXED)
   useEffect(() => {
     const fetchScenarios = async () => {
-      setLoading(true);
-
       try {
-        const res = await scenarioAPI.getAll();
+        setLoading(true);
 
-        console.log("SCENARIOS RESPONSE:", res.data);
+        const res = await scenarioAPI.getAll();
 
         const data =
           res.data?.scenarios ||
@@ -26,7 +23,7 @@ export default function Scenarios() {
 
         setScenarios(Array.isArray(data) ? data : []);
       } catch (err) {
-        console.log("ERROR:", err.response || err);
+        console.log("Scenario fetch error:", err);
         setScenarios([]);
       } finally {
         setLoading(false);
@@ -36,40 +33,41 @@ export default function Scenarios() {
     fetchScenarios();
   }, []);
 
-  // FRONTEND FILTERING (FIXED)
-  const filteredScenarios = scenarios.filter((s) => {
+  const filtered = scenarios.filter((s) => {
     return (
       (!filter.role || s.role === filter.role) &&
       (!filter.difficulty || s.difficulty === filter.difficulty)
     );
   });
 
-  const getRoleIcon = (role) => {
-    return role === 'SOC Analyst' ? '🔍' : '⚔️';
-  };
+  const getIcon = (role) =>
+    role === "SOC Analyst" ? "🔍" : "⚔️";
 
   return (
-    <div style={{ minHeight: '100vh', background: '#f0f4f8' }}>
+    <div style={{ minHeight: "100vh", background: "#f4f6f8" }}>
       <Navbar />
 
-      <div className="container" style={{ padding: '32px 24px' }}>
-        <h1 className="page-title">🎯 Scenarios</h1>
+      <div className="container" style={{ padding: "30px" }}>
+        <h1>🎯 Scenarios</h1>
 
-        {/* FILTERS */}
-        <div style={{ display: 'flex', gap: '16px', marginBottom: '20px' }}>
-          
+        {/* Filters */}
+        <div style={{ display: "flex", gap: "12px", marginBottom: "20px" }}>
           <select
             value={filter.role}
-            onChange={(e) => setFilter({ ...filter, role: e.target.value })}
+            onChange={(e) =>
+              setFilter({ ...filter, role: e.target.value })
+            }
           >
             <option value="">All Roles</option>
             <option value="SOC Analyst">SOC Analyst</option>
-            <option value="Penetration Tester">Penetration Tester</option>
+            <option value="Penetration Tester">Pentester</option>
           </select>
 
           <select
             value={filter.difficulty}
-            onChange={(e) => setFilter({ ...filter, difficulty: e.target.value })}
+            onChange={(e) =>
+              setFilter({ ...filter, difficulty: e.target.value })
+            }
           >
             <option value="">All Difficulty</option>
             <option value="beginner">Beginner</option>
@@ -77,43 +75,37 @@ export default function Scenarios() {
             <option value="advanced">Advanced</option>
           </select>
 
-          <button onClick={() => setFilter({ role: '', difficulty: '' })}>
+          <button onClick={() => setFilter({ role: "", difficulty: "" })}>
             Clear
           </button>
         </div>
 
-        {/* LOADING */}
+        {/* Content */}
         {loading ? (
-          <div>Loading scenarios...</div>
-        ) : filteredScenarios.length === 0 ? (
-          <div>No scenarios found</div>
+          <p>Loading...</p>
+        ) : filtered.length === 0 ? (
+          <p>No scenarios found</p>
         ) : (
-          <div style={{ display: 'grid', gap: '16px' }}>
-            
-            {filteredScenarios.map((scenario) => (
-              <div key={scenario.id} className="card">
-                
-                <div style={{ fontSize: '24px' }}>
-                  {getRoleIcon(scenario.role)}
-                </div>
+          <div style={{ display: "grid", gap: "16px" }}>
+            {filtered.map((s) => (
+              <div key={s.id || s._id} className="card">
+                <h2>
+                  {getIcon(s.role)} {s.title}
+                </h2>
 
-                <h3>{scenario.title}</h3>
+                <p>{s.description}</p>
 
-                <p>{scenario.description}</p>
+                <small>{s.difficulty}</small>
 
-                <div>
-                  <small>Difficulty: {scenario.difficulty}</small>
-                </div>
+                <br />
 
-                <Link to={`/scenarios/${scenario.id}`}>
+                <Link to={`/scenarios/${s.id || s._id}`}>
                   <button className="btn btn-primary">
-                    Start Scenario
+                    Start
                   </button>
                 </Link>
-
               </div>
             ))}
-
           </div>
         )}
       </div>

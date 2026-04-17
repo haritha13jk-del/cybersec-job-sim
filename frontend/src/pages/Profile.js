@@ -2,7 +2,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { progressAPI, authAPI } from '../services/api';
 import Navbar from '../components/Navbar';
 
-export default function Profile() {
+export default function Profile() { ... }
   const [progress, setProgress] = useState([]);
   const [stats, setStats] = useState({});
   const [loading, setLoading] = useState(true);
