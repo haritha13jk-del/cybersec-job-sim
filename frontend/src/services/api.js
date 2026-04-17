@@ -35,6 +35,11 @@ export const scenarioAPI = {
 // ================= PROGRESS =================
 export const progressAPI = {
   getUserProgress: () => api.get("/api/progress"),
+
+  // FIX: backend usually expects /leaderboard endpoint
+  getLeaderboard: (limit = 10) =>
+    api.get(`/api/progress/leaderboard?limit=${limit}`),
+
   updateProgress: (data) => api.post("/api/progress", data),
 };
 

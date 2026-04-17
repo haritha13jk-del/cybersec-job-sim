@@ -1,265 +1,187 @@
-import React, { useState, useEffect, useCallback } from 'react';
-import { progressAPI, authAPI } from '../services/api';
-import Navbar from '../components/Navbar';
+import React, { useEffect, useState } from "react";
+import Navbar from "../components/Navbar";
+import { progressAPI } from "../services/api";
 
-export default function Profile() { ... }
-  const [progress, setProgress] = useState([]);
-  const [stats, setStats] = useState({});
+export default function Profile() {
+  const [progress, setProgress] = useState(null);
   const [loading, setLoading] = useState(true);
-  const [editing, setEditing] = useState(false);
-  const [formData, setFormData] = useState({ full_name: '', username: '' });
-  const [message, setMessage] = useState('');
 
-  const user = JSON.parse(localStorage.getItem('user') || '{}');
-
-  const fetchData = useCallback(async () => {
-    try {
-      const progressRes = await progressAPI.getProgress();
-      setProgress(progressRes.data.progress || []);
-      setStats(progressRes.data.stats || {});
-      setFormData({
-        full_name: user?.fullName || '',
-        username: user?.username || ''
-      });
-    } catch (err) {
-      console.error(err);
-    } finally {
-      setLoading(false);
-    }
-  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+  const user = JSON.parse(localStorage.getItem("user") || "{}");
 
   useEffect(() => {
-    fetchData();
-  }, [fetchData]);
+    const load = async () => {
+      try {
+        setLoading(true);
+        const res = await progressAPI.getUserProgress();
+        setProgress(res.data?.data || res.data || null);
+      } catch (err) {
+        console.error("Profile load error:", err);
+        setProgress(null);
+      } finally {
+        setLoading(false);
+      }
+    };
 
-  const handleUpdate = async () => {
-    try {
-      const res = await authAPI.updateProfile(formData);
-      localStorage.setItem('user', JSON.stringify({
-        ...user,
-        fullName: res.data.user.full_name,
-        username: res.data.user.username
-      }));
-      setMessage('Profile updated successfully!');
-      setEditing(false);
-      setTimeout(() => setMessage(''), 3000);
-    } catch (err) {
-      setMessage('Update failed');
-    }
-  };
+    load();
+  }, []);
 
-  const getScoreColor = (score, max) => {
-    const pct = (score / (max || 100)) * 100;
-    if (pct >= 80) return '#38a169';
-    if (pct >= 50) return '#d69e2e';
-    return '#e53e3e';
-  };
+  const initials = (user.username || user.email || "U")
+    .slice(0, 2)
+    .toUpperCase();
 
-  const totalTime = stats.total_time
-    ? `${Math.round(stats.total_time / 60)} mins`
-    : '0 mins';
+  const statItems = [
+    { label: "Total Score", value: progress?.total_score || 0, icon: "⭐", color: "#f59e0b" },
+    { label: "Completed", value: progress?.scenarios_completed || 0, icon: "✅", color: "#10b981" },
+    { label: "Avg Score", value: `${progress?.average_score || 0}%`, icon: "📊", color: "#3b82f6" },
+    { label: "Best Score", value: `${progress?.best_score || 0}%`, icon: "🏆", color: "#8b5cf6" },
+  ];
 
   return (
-    <div style={{ minHeight: '100vh', background: '#f0f4f8' }}>
+    <div style={styles.page}>
       <Navbar />
 
-      <div className="container" style={{ padding: '32px 24px', maxWidth: '900px', margin: '0 auto' }}>
+      <div style={styles.container}>
+        <h1 style={styles.title}>👤 My Profile</h1>
 
-        {/* Page Header */}
-        <div style={{ marginBottom: '28px' }}>
-          <h1 style={{ fontSize: '24px', fontWeight: '700', color: '#2d3748', marginBottom: '4px' }}>
-            👤 My Profile
-          </h1>
-          <p style={{ color: '#718096', fontSize: '14px' }}>
-            Manage your account and view your training history
-          </p>
+        {/* Profile Card */}
+        <div style={styles.profileCard}>
+          <div style={styles.avatarLarge}>{initials}</div>
+          <div>
+            <h2 style={{ margin: 0, fontSize: 22, fontWeight: 800, color: "#0f172a" }}>
+              {user.full_name || user.username || "User"}
+            </h2>
+            <p style={{ margin: "4px 0 0", color: "#64748b" }}>@{user.username || "user"}</p>
+            {user.email && (
+              <p style={{ margin: "2px 0 0", color: "#94a3b8", fontSize: 13 }}>
+                ✉ {user.email}
+              </p>
+            )}
+            <div style={styles.roleBadge}>
+              🛡️ CyberSec Trainee
+            </div>
+          </div>
         </div>
 
+        {/* Stats */}
+        <h2 style={styles.sectionTitle}>📈 Your Stats</h2>
+
         {loading ? (
-          <div className="loading">Loading profile...</div>
+          <div style={styles.statsGrid}>
+            {[1, 2, 3, 4].map((i) => (
+              <div key={i} style={styles.skeletonCard} />
+            ))}
+          </div>
         ) : (
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '24px' }}>
-
-            {/* LEFT COLUMN */}
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
-
-              {/* Profile Card */}
-              <div className="card">
-                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center', padding: '8px 0 16px' }}>
-                  <div style={{
-                    width: '72px', height: '72px', borderRadius: '50%',
-                    background: 'linear-gradient(135deg, #667eea, #764ba2)',
-                    display: 'flex', alignItems: 'center', justifyContent: 'center',
-                    fontSize: '28px', fontWeight: '700', color: '#fff',
-                    marginBottom: '14px'
-                  }}>
-                    {(user?.fullName || user?.username || 'U')[0].toUpperCase()}
-                  </div>
-                  <h2 style={{ fontSize: '18px', fontWeight: '700', color: '#2d3748', marginBottom: '2px' }}>
-                    {user?.fullName || user?.username}
-                  </h2>
-                  <p style={{ fontSize: '13px', color: '#718096', marginBottom: '10px' }}>
-                    @{user?.username}
-                  </p>
-                  <span style={{
-                    fontSize: '11px', fontWeight: '700', letterSpacing: '0.05em',
-                    padding: '3px 12px', borderRadius: '20px',
-                    background: user?.role === 'admin' ? '#fef3c7' : '#ebf8ff',
-                    color: user?.role === 'admin' ? '#92400e' : '#2b6cb0',
-                    border: `1px solid ${user?.role === 'admin' ? '#fbbf24' : '#90cdf4'}`
-                  }}>
-                    {(user?.role || 'student').toUpperCase()}
-                  </span>
+          <div style={styles.statsGrid}>
+            {statItems.map((item) => (
+              <div key={item.label} style={styles.statCard}>
+                <div style={{ ...styles.statIcon, background: item.color + "1a" }}>
+                  <span style={{ fontSize: 22 }}>{item.icon}</span>
                 </div>
-
-                <hr style={{ border: 'none', borderTop: '1px solid #e2e8f0', margin: '0 0 16px' }} />
-
-                {/* Edit toggle */}
-                {!editing ? (
-                  <button
-                    className="btn btn-primary"
-                    style={{ width: '100%' }}
-                    onClick={() => setEditing(true)}
-                  >
-                    ✏️ Edit Profile
-                  </button>
-                ) : (
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-                    <input
-                      className="form-input"
-                      placeholder="Full Name"
-                      value={formData.full_name}
-                      onChange={(e) => setFormData({ ...formData, full_name: e.target.value })}
-                    />
-                    <input
-                      className="form-input"
-                      placeholder="Username"
-                      value={formData.username}
-                      onChange={(e) => setFormData({ ...formData, username: e.target.value })}
-                    />
-                    <div style={{ display: 'flex', gap: '8px' }}>
-                      <button className="btn btn-primary" style={{ flex: 1 }} onClick={handleUpdate}>Save</button>
-                      <button className="btn btn-secondary" style={{ flex: 1 }} onClick={() => setEditing(false)}>Cancel</button>
-                    </div>
-                  </div>
-                )}
-
-                {message && (
-                  <p style={{
-                    marginTop: '10px', padding: '8px 12px', borderRadius: '8px',
-                    background: message.includes('success') ? '#f0fff4' : '#fff5f5',
-                    color: message.includes('success') ? '#276749' : '#c53030',
-                    fontSize: '13px', textAlign: 'center'
-                  }}>
-                    {message}
-                  </p>
-                )}
+                <div>
+                  <p style={styles.statLabel}>{item.label}</p>
+                  <p style={{ ...styles.statValue, color: item.color }}>{item.value}</p>
+                </div>
               </div>
-
-              {/* Training Statistics */}
-              <div className="card">
-                <h3 style={{ fontSize: '15px', fontWeight: '700', color: '#2d3748', marginBottom: '16px' }}>
-                  📋 Training Statistics
-                </h3>
-                {[
-                  { label: 'Total Attempts', value: stats.total_attempts || 0, color: '#5a67d8' },
-                  { label: 'Completed', value: stats.completed_scenarios || 0, color: '#38a169' },
-                  { label: 'Average Score', value: stats.avg_score ? `${Math.round(stats.avg_score)}%` : '0%', color: '#d69e2e' },
-                  { label: 'Best Score', value: stats.best_score || 0, color: '#e53e3e' },
-                  { label: 'Total Time', value: totalTime, color: '#805ad5' },
-                ].map((item) => (
-                  <div key={item.label} style={{
-                    display: 'flex', justifyContent: 'space-between', alignItems: 'center',
-                    padding: '10px 0', borderBottom: '1px solid #f7fafc'
-                  }}>
-                    <span style={{ fontSize: '13px', color: '#718096' }}>{item.label}</span>
-                    <span style={{ fontSize: '15px', fontWeight: '700', color: item.color }}>
-                      {item.value}
-                    </span>
-                  </div>
-                ))}
-              </div>
-            </div>
-
-            {/* RIGHT COLUMN - Training History */}
-            <div className="card" style={{ alignSelf: 'start' }}>
-              <h3 style={{ fontSize: '15px', fontWeight: '700', color: '#2d3748', marginBottom: '16px' }}>
-                📋 Training History
-              </h3>
-
-              {progress.length === 0 ? (
-                <div style={{ textAlign: 'center', padding: '40px 0' }}>
-                  <div style={{ fontSize: '40px', marginBottom: '12px' }}>🔍</div>
-                  <p style={{ color: '#718096', fontSize: '14px' }}>No training history yet</p>
-                </div>
-              ) : (
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-                  {progress.map((item, i) => {
-                    const scoreColor = getScoreColor(item.score, item.max_score || item.scenario_max_score || 100);
-                    const maxScore = item.max_score || item.scenario_max_score || 100;
-                    const pct = Math.round((item.score / maxScore) * 100);
-
-                    return (
-                      <div key={i} style={{
-                        padding: '12px 14px',
-                        border: '1px solid #e2e8f0',
-                        borderRadius: '10px',
-                        background: '#fafafa',
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: '12px'
-                      }}>
-                        {/* Icon */}
-                        <div style={{
-                          width: '36px', height: '36px', borderRadius: '50%',
-                          background: '#ebf8ff', display: 'flex',
-                          alignItems: 'center', justifyContent: 'center',
-                          fontSize: '16px', flexShrink: 0
-                        }}>
-                          🔍
-                        </div>
-
-                        {/* Info */}
-                        <div style={{ flex: 1, minWidth: 0 }}>
-                          <p style={{ fontWeight: '600', fontSize: '13px', color: '#2d3748', marginBottom: '3px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                            {item.title}
-                          </p>
-                          <div style={{ display: 'flex', gap: '6px', alignItems: 'center', flexWrap: 'wrap' }}>
-                            <span style={{
-                              fontSize: '10px', padding: '1px 7px', borderRadius: '20px',
-                              background: item.difficulty === 'beginner' ? '#f0fff4' : item.difficulty === 'intermediate' ? '#fffbeb' : '#fff5f5',
-                              color: item.difficulty === 'beginner' ? '#276749' : item.difficulty === 'intermediate' ? '#744210' : '#742a2a',
-                              border: '1px solid',
-                              borderColor: item.difficulty === 'beginner' ? '#9ae6b4' : item.difficulty === 'intermediate' ? '#fbd38d' : '#feb2b2',
-                              fontWeight: '600'
-                            }}>
-                              {item.difficulty}
-                            </span>
-                            <span style={{ fontSize: '11px', color: '#a0aec0' }}>
-                              {item.attempt_number ? `Attempt #${item.attempt_number}` : ''}
-                            </span>
-                          </div>
-                        </div>
-
-                        {/* Score */}
-                        <div style={{ textAlign: 'right', flexShrink: 0 }}>
-                          <p style={{ fontSize: '15px', fontWeight: '700', color: scoreColor, marginBottom: '4px' }}>
-                            {item.score}/{maxScore}
-                          </p>
-                          <div style={{ width: '60px', height: '4px', background: '#e2e8f0', borderRadius: '2px', overflow: 'hidden' }}>
-                            <div style={{ width: `${pct}%`, height: '100%', background: scoreColor, borderRadius: '2px' }} />
-                          </div>
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
-              )}
-            </div>
-
+            ))}
           </div>
         )}
+
+        {/* Account Info */}
+        <h2 style={styles.sectionTitle}>🔐 Account Info</h2>
+        <div style={styles.infoCard}>
+          <div style={styles.infoRow}>
+            <span style={styles.infoLabel}>Username</span>
+            <span style={styles.infoValue}>{user.username || "—"}</span>
+          </div>
+          <div style={styles.divider} />
+          <div style={styles.infoRow}>
+            <span style={styles.infoLabel}>Email</span>
+            <span style={styles.infoValue}>{user.email || "—"}</span>
+          </div>
+          <div style={styles.divider} />
+          <div style={styles.infoRow}>
+            <span style={styles.infoLabel}>Member Since</span>
+            <span style={styles.infoValue}>
+              {user.createdAt
+                ? new Date(user.createdAt).toLocaleDateString()
+                : "—"}
+            </span>
+          </div>
+        </div>
+
+        {/* Logout */}
+        <button
+          style={styles.logoutBtn}
+          onClick={() => {
+            localStorage.removeItem("token");
+            localStorage.removeItem("user");
+            window.location.href = "/login";
+          }}
+        >
+          🚪 Logout
+        </button>
       </div>
     </div>
   );
 }
+
+const styles = {
+  page: { minHeight: "100vh", background: "#f1f5f9" },
+  container: { maxWidth: 800, margin: "0 auto", padding: "32px 24px" },
+  title: { fontSize: 28, fontWeight: 800, color: "#0f172a", marginBottom: 24 },
+  profileCard: {
+    background: "#fff", borderRadius: 20, padding: "28px 32px",
+    display: "flex", alignItems: "center", gap: 24,
+    boxShadow: "0 1px 4px rgba(0,0,0,0.07)", border: "1px solid #e2e8f0",
+    marginBottom: 32, flexWrap: "wrap",
+  },
+  avatarLarge: {
+    width: 80, height: 80, borderRadius: "50%",
+    background: "linear-gradient(135deg, #2563eb, #7c3aed)",
+    color: "#fff", display: "flex", alignItems: "center",
+    justifyContent: "center", fontWeight: 800, fontSize: 28, flexShrink: 0,
+  },
+  roleBadge: {
+    display: "inline-block", marginTop: 8,
+    background: "#dbeafe", color: "#1d4ed8",
+    padding: "4px 12px", borderRadius: 20,
+    fontSize: 12, fontWeight: 600,
+  },
+  sectionTitle: { fontSize: 18, fontWeight: 700, color: "#0f172a", marginBottom: 16 },
+  statsGrid: {
+    display: "grid",
+    gridTemplateColumns: "repeat(auto-fit, minmax(170px, 1fr))",
+    gap: 14, marginBottom: 32,
+  },
+  skeletonCard: { height: 90, borderRadius: 16, background: "#e2e8f0" },
+  statCard: {
+    background: "#fff", borderRadius: 16, padding: "18px 20px",
+    display: "flex", alignItems: "center", gap: 14,
+    boxShadow: "0 1px 3px rgba(0,0,0,0.06)", border: "1px solid #e2e8f0",
+  },
+  statIcon: {
+    width: 46, height: 46, borderRadius: 12,
+    display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0,
+  },
+  statLabel: { color: "#64748b", fontSize: 12, fontWeight: 500, margin: 0 },
+  statValue: { fontSize: 22, fontWeight: 800, margin: 0 },
+  infoCard: {
+    background: "#fff", borderRadius: 16,
+    border: "1px solid #e2e8f0", overflow: "hidden",
+    marginBottom: 32,
+  },
+  infoRow: {
+    display: "flex", justifyContent: "space-between", alignItems: "center",
+    padding: "16px 24px",
+  },
+  infoLabel: { color: "#64748b", fontWeight: 500, fontSize: 14 },
+  infoValue: { color: "#0f172a", fontWeight: 600, fontSize: 14 },
+  divider: { borderTop: "1px solid #f1f5f9" },
+  logoutBtn: {
+    background: "#fff", color: "#ef4444",
+    border: "1px solid #fca5a5", borderRadius: 12,
+    padding: "12px 24px", fontSize: 14, fontWeight: 700,
+    cursor: "pointer", transition: "background 0.2s",
+  },
+};

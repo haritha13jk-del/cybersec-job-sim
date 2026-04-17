@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { Link } from "react-router-dom";
+import { useNavigate, Link } from "react-router-dom";
 import { authAPI } from "../services/api";
 
 export default function Login() {
@@ -7,6 +7,8 @@ export default function Login() {
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+
+  const navigate = useNavigate();
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -26,22 +28,19 @@ export default function Login() {
         res.data?.data?.user;
 
       if (!token) {
-        throw new Error("Token not received from backend");
+        throw new Error("Token missing");
       }
 
       localStorage.setItem("token", token);
+      if (user) localStorage.setItem("user", JSON.stringify(user));
 
-      if (user) {
-        localStorage.setItem("user", JSON.stringify(user));
-      }
-
-      window.location.href = "/";
+      navigate("/");
 
     } catch (err) {
       setError(
         err.response?.data?.message ||
         err.response?.data?.error ||
-        "Login failed. Please try again."
+        "Login failed"
       );
     } finally {
       setLoading(false);
@@ -50,13 +49,13 @@ export default function Login() {
 
   return (
     <div style={{
-      minHeight: "100vh",
+      height: "100vh",
       display: "flex",
+      justifyContent: "center",
       alignItems: "center",
-      justifyContent: "center"
+      background: "#f0f4f8"
     }}>
-      <div className="card">
-
+      <div className="card" style={{ width: "320px" }}>
         <h2>Login</h2>
 
         {error && <p style={{ color: "red" }}>{error}</p>}
@@ -68,6 +67,7 @@ export default function Login() {
             value={email}
             onChange={(e) => setEmail(e.target.value)}
             required
+            style={{ width: "100%", marginBottom: "10px", padding: "8px" }}
           />
 
           <input
@@ -76,17 +76,29 @@ export default function Login() {
             value={password}
             onChange={(e) => setPassword(e.target.value)}
             required
+            style={{ width: "100%", marginBottom: "10px", padding: "8px" }}
           />
 
-          <button disabled={loading}>
+          <button
+            type="submit"
+            disabled={loading}
+            style={{
+              width: "100%",
+              padding: "10px",
+              background: "#3182ce",
+              color: "white",
+              border: "none",
+              borderRadius: "6px",
+              cursor: "pointer"
+            }}
+          >
             {loading ? "Signing in..." : "Login"}
           </button>
         </form>
 
-        <p>
+        <p style={{ marginTop: "10px" }}>
           <Link to="/register">Create account</Link>
         </p>
-
       </div>
     </div>
   );
