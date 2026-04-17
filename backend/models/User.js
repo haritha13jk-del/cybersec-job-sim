@@ -1,48 +1,88 @@
-const { mysqlPool } = require('../config/database');
+const mongoose = require('mongoose');
 const bcrypt = require('bcryptjs');
 
-class User {
-  static async register(username, email, password, fullName, role = 'student') {
-    const hashedPassword = await bcrypt.hash(password, 10);
-    const query = `INSERT INTO users (username, email, password, full_name, role) VALUES (?, ?, ?, ?, ?)`;
-    const [result] = await mysqlPool.query(query, [username, email, hashedPassword, fullName, role]);
-    return result.insertId;
-  }
+const userSchema = new mongoose.Schema(
+  {
+    username: {
+      type: String,
+      required: true,
+      trim: true,
+    },
+    email: {
+      type: String,
+      required: true,
+      unique: true,
+      lowercase: true,
+    },
+    password: {
+      type: String,
+      required: true,
+    },
+    full_name: {
+      type: String,
+    },
+    role: {
+      type: String,
+      default: 'student',
+    },
+  },
+  { timestamps: true }
+);
 
-  static async findByEmail(email) {
-    const query = 'SELECT * FROM users WHERE email = ?';
-    const [rows] = await mysqlPool.query(query, [email]);
-    return rows[0];
-  }
+/* ================= REGISTER ================= */
+userSchema.statics.register = async function (username, email, password, fullName, role = 'student') {
+  const hashedPassword = await bcrypt.hash(password, 10);
 
-  static async findById(id) {
-    const query = `SELECT id, username, email, full_name, role, created_at FROM users WHERE id = ?`;
-    const [rows] = await mysqlPool.query(query, [id]);
-    return rows[0];
-  }
+  const user = await this.create({
+    username,
+    email,
+    password: hashedPassword,
+    full_name: fullName,
+    role,
+  });
 
-  static async verifyPassword(plainPassword, hashedPassword) {
-    return await bcrypt.compare(plainPassword, hashedPassword);
-  }
+  return user._id;
+};
 
-  static async updateProfile(userId, updates) {
-    const allowedFields = ['full_name', 'username'];
-    const updateFields = [];
-    const values = [];
-    for (const [key, value] of Object.entries(updates)) {
-      if (allowedFields.includes(key) && value) {
-        updateFields.push(`${key} = ?`);
-        values.push(value);
-      }
+/* ================= FIND BY EMAIL ================= */
+userSchema.statics.findByEmail = async function (email) {
+  return this.findOne({ email });
+};
+
+/* ================= FIND BY ID ================= */
+userSchema.methods.toJSON = function () {
+  const obj = this.toObject();
+  delete obj.password; // 🔥 hide password
+  return obj;
+};
+
+userSchema.statics.getById = async function (id) {
+  return this.findById(id).select('-password');
+};
+
+/* ================= VERIFY PASSWORD ================= */
+userSchema.statics.verifyPassword = async function (plainPassword, hashedPassword) {
+  return bcrypt.compare(plainPassword, hashedPassword);
+};
+
+/* ================= UPDATE PROFILE ================= */
+userSchema.statics.updateProfile = async function (userId, updates) {
+  const allowedFields = ['full_name', 'username'];
+
+  const filteredUpdates = {};
+  for (const key of allowedFields) {
+    if (updates[key]) {
+      filteredUpdates[key] = updates[key];
     }
-    if (updateFields.length === 0) {
-      throw new Error('No valid fields to update');
-    }
-    values.push(userId);
-    const query = `UPDATE users SET ${updateFields.join(', ')} WHERE id = ?`;
-    await mysqlPool.query(query, values);
-    return await User.findById(userId);
   }
-}
 
-module.exports = User;
+  if (Object.keys(filteredUpdates).length === 0) {
+    throw new Error('No valid fields to update');
+  }
+
+  return this.findByIdAndUpdate(userId, filteredUpdates, {
+    new: true,
+  }).select('-password');
+};
+
+module.exports = mongoose.model('User', userSchema);
