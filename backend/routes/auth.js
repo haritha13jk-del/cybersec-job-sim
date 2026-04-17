@@ -1,7 +1,8 @@
 const express = require('express');
 const jwt = require('jsonwebtoken');
-const User = require('../models/User');
-const ActivityLog = require('../models/ActivityLog');
+const bcrypt = require('bcryptjs');
+
+const { pool } = require('../config/database'); // ✅ IMPORTANT
 const { authMiddleware } = require('../middleware/auth');
 
 const router = express.Router();
@@ -35,46 +36,39 @@ router.post('/register', async (req, res) => {
       });
     }
 
-    // ✅ Check existing user
-    const existingUser = await User.findByEmail(email);
-    if (existingUser) {
+    // ✅ Check if user exists
+    const existingUser = await pool.query(
+      "SELECT * FROM users WHERE email = $1",
+      [email]
+    );
+
+    if (existingUser.rows.length > 0) {
       return res.status(400).json({
         success: false,
         error: 'Email already registered'
       });
     }
 
-    // ✅ Register user
-    const userId = await User.register(
-      username,
-      email,
-      password,
-      fullName || username
-    );
+    // ✅ Hash password
+    const hashedPassword = await bcrypt.hash(password, 10);
 
-    // ✅ Log activity (safe)
-    try {
-      await ActivityLog.logActivity({
-        userId,
-        action: 'REGISTER',
-        details: { username, email },
-        ipAddress: req.ip,
-        userAgent: req.headers['user-agent']
-      });
-    } catch (logErr) {
-      console.error("Activity log error:", logErr.message);
-    }
+    // ✅ Insert user
+    const result = await pool.query(
+      `INSERT INTO users (username, email, password, full_name, role)
+       VALUES ($1, $2, $3, $4, $5)
+       RETURNING id`,
+      [username, email, hashedPassword, fullName || username, 'user']
+    );
 
     res.status(201).json({
       success: true,
       message: 'User registered successfully',
-      userId
+      userId: result.rows[0].id
     });
 
   } catch (error) {
     console.error('❌ Registration error:', error.message);
 
-    // 🔥 IMPORTANT FIX (shows real error)
     res.status(500).json({
       success: false,
       error: error.message
@@ -88,6 +82,7 @@ router.post('/login', async (req, res) => {
   try {
     const { email, password } = req.body;
 
+    // ✅ Validation
     if (!email || !password) {
       return res.status(400).json({
         success: false,
@@ -95,7 +90,14 @@ router.post('/login', async (req, res) => {
       });
     }
 
-    const user = await User.findByEmail(email);
+    // ✅ Find user
+    const result = await pool.query(
+      "SELECT * FROM users WHERE email = $1",
+      [email]
+    );
+
+    const user = result.rows[0];
+
     if (!user) {
       return res.status(401).json({
         success: false,
@@ -103,7 +105,9 @@ router.post('/login', async (req, res) => {
       });
     }
 
-    const isValidPassword = await User.verifyPassword(password, user.password);
+    // ✅ Check password
+    const isValidPassword = await bcrypt.compare(password, user.password);
+
     if (!isValidPassword) {
       return res.status(401).json({
         success: false,
@@ -111,7 +115,7 @@ router.post('/login', async (req, res) => {
       });
     }
 
-    // ❌ Prevent crash if JWT missing
+    // ❌ JWT missing
     if (!process.env.JWT_SECRET) {
       return res.status(500).json({
         success: false,
@@ -119,6 +123,7 @@ router.post('/login', async (req, res) => {
       });
     }
 
+    // ✅ Create token
     const token = jwt.sign(
       {
         id: user.id,
@@ -129,19 +134,6 @@ router.post('/login', async (req, res) => {
       process.env.JWT_SECRET,
       { expiresIn: process.env.JWT_EXPIRE || '1d' }
     );
-
-    // ✅ Log activity safely
-    try {
-      await ActivityLog.logActivity({
-        userId: user.id,
-        action: 'LOGIN',
-        details: { email },
-        ipAddress: req.ip,
-        userAgent: req.headers['user-agent']
-      });
-    } catch (logErr) {
-      console.error("Activity log error:", logErr.message);
-    }
 
     res.json({
       success: true,
@@ -169,7 +161,12 @@ router.post('/login', async (req, res) => {
 // ================= GET CURRENT USER =================
 router.get('/me', authMiddleware, async (req, res) => {
   try {
-    const user = await User.findById(req.user.id);
+    const result = await pool.query(
+      "SELECT id, username, email, full_name, role FROM users WHERE id = $1",
+      [req.user.id]
+    );
+
+    const user = result.rows[0];
 
     if (!user) {
       return res.status(404).json({
@@ -197,14 +194,17 @@ router.get('/me', authMiddleware, async (req, res) => {
 // ================= UPDATE PROFILE =================
 router.put('/profile', authMiddleware, async (req, res) => {
   try {
-    const updates = req.body;
+    const { fullName } = req.body;
 
-    const updatedUser = await User.updateProfile(req.user.id, updates);
+    const result = await pool.query(
+      `UPDATE users SET full_name = $1 WHERE id = $2 RETURNING *`,
+      [fullName, req.user.id]
+    );
 
     res.json({
       success: true,
       message: 'Profile updated successfully',
-      user: updatedUser
+      user: result.rows[0]
     });
 
   } catch (error) {
