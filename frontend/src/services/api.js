@@ -1,25 +1,12 @@
 import axios from "axios";
 
-// ================= BASE URL =================
-const BASE_URL =
-  process.env.REACT_APP_API_URL ||
-  "https://cybersec-job-sim.onrender.com";
-
-console.log("API URL:", BASE_URL);
-
-// ================= AXIOS INSTANCE =================
 const API = axios.create({
-  baseURL: BASE_URL,
-  headers: {
-    "Content-Type": "application/json",
-  },
+  baseURL: "https://cybersec-job-sim.onrender.com/api",
 });
 
-// ================= TOKEN INTERCEPTOR =================
+// 🔥 AUTO ATTACH TOKEN (VERY IMPORTANT)
 API.interceptors.request.use((req) => {
   const token = localStorage.getItem("token");
-
-  console.log("TOKEN SENT:", token);
 
   if (token) {
     req.headers.Authorization = `Bearer ${token}`;
@@ -28,50 +15,16 @@ API.interceptors.request.use((req) => {
   return req;
 });
 
-// ================= ERROR INTERCEPTOR =================
-API.interceptors.response.use(
-  (response) => response,
-  (error) => {
-    console.log("API ERROR:", error.response?.data || error.message);
-    return Promise.reject(error);
-  }
-);
-
-// ================= AUTH =================
+// AUTH
 export const authAPI = {
-  login: (data) => API.post("/api/auth/login", data),
-  register: (data) => API.post("/api/auth/register", data),
+  login: (data) => API.post("/auth/login", data),
+  register: (data) => API.post("/auth/register", data),
 };
 
-// ================= AI =================
-export const aiAPI = {
-  sendMessage: (data) => API.post("/api/ai/chat", data),
-  getHint: (data) => API.post("/api/ai/hint", data),
-  getChatHistory: (scenarioId) =>
-    API.get(`/api/ai/history?scenarioId=${scenarioId}`),
-};
-
-// ================= SCENARIOS =================
+// SCENARIOS
 export const scenarioAPI = {
-  getAll: () => API.get("/api/scenarios"),
-  getById: (id) => API.get(`/api/scenarios/${id}`),
-};
-
-// ================= USER =================
-export const userAPI = {
-  getProfile: () => API.get("/api/users/profile"),
-};
-
-// ================= PROGRESS =================
-export const progressAPI = {
-  getProgress: () => API.get("/api/progress"),
-
-  updateProgress: (data) => API.post("/api/progress", data),
-
-  getStats: () => API.get("/api/progress/stats"),
-
-  getLeaderboard: (limit = 10) =>
-    API.get(`/api/leaderboard?limit=${limit}`),
+  getAll: () => API.get("/scenarios"),
+  getById: (id) => API.get(`/scenarios/${id}`),
 };
 
 export default API;
