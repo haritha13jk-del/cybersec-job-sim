@@ -38,18 +38,12 @@ router.post('/chat', authMiddleware, async (req, res) => {
       });
     }
 
-    // ✅ Store chat in MySQL
-    const query = `
-      INSERT INTO chat_history (user_id, scenario_id, message, response)
-      VALUES (?, ?, ?, ?)
-    `;
-
-    await mysqlPool.query(query, [
-      userId,
-      scenarioId || null,
-      message,
-      aiResponse.message
-    ]);
+    // ✅ Save chat
+    await mysqlPool.query(
+      `INSERT INTO chat_history (user_id, scenario_id, message, response)
+       VALUES (?, ?, ?, ?)`,
+      [userId, scenarioId || null, message, aiResponse.message]
+    );
 
     // ✅ Log activity
     await ActivityLog.logActivity({
@@ -71,7 +65,7 @@ router.post('/chat', authMiddleware, async (req, res) => {
     console.error('AI chat error:', error);
     res.status(500).json({
       success: false,
-      error: 'Failed to generate AI response. Please try again.'
+      error: 'Failed to generate AI response'
     });
   }
 });
@@ -120,7 +114,7 @@ router.post('/hint', authMiddleware, async (req, res) => {
       }
     }
 
-    // ✅ Store hint request
+    // ✅ Save hint request
     await mysqlPool.query(
       `INSERT INTO chat_history (user_id, scenario_id, message, response)
        VALUES (?, ?, ?, ?)`,
@@ -195,5 +189,5 @@ router.get('/history', authMiddleware, async (req, res) => {
     });
   }
 });
-
+S
 module.exports = router;
