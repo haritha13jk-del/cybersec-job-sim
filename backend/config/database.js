@@ -4,18 +4,34 @@ require('dotenv').config();
 
 /* ================= MYSQL CONNECTION ================= */
 
-// ✅ Use full Railway PUBLIC URL (IMPORTANT)
+// ✅ Extract config from URL manually
+const dbUrl = new URL(process.env.MYSQL_URL);
+
 const mysqlPool = mysql.createPool({
-  uri: process.env.MYSQL_URL,   // <-- THIS is the fix
+  host: dbUrl.hostname,
+  user: dbUrl.username,
+  password: dbUrl.password,
+  database: dbUrl.pathname.replace('/', ''),
+  port: dbUrl.port,
+
   waitForConnections: true,
   connectionLimit: 10,
-  queueLimit: 0
+  queueLimit: 0,
+
+  // ✅ IMPORTANT for Railway
+  ssl: {
+    rejectUnauthorized: false
+  }
 });
 
-// Debug log
-console.log('MySQL using URL:', process.env.MYSQL_URL ? 'YES' : 'NO');
+console.log('MySQL Config:', {
+  host: dbUrl.hostname,
+  user: dbUrl.username,
+  database: dbUrl.pathname.replace('/', ''),
+  port: dbUrl.port
+});
 
-// Test MySQL connection
+// Test MySQL
 const testMySQL = async () => {
   try {
     const connection = await mysqlPool.getConnection();
@@ -27,20 +43,17 @@ const testMySQL = async () => {
   }
 };
 
-
-/* ================= MONGODB CONNECTION ================= */
+/* ================= MONGODB ================= */
 
 const connectMongoDB = async () => {
   try {
     const mongoUri = process.env.MONGODB_URI;
 
     if (!mongoUri) {
-      throw new Error('❌ MONGODB_URI not found in environment variables');
+      throw new Error('MONGODB_URI missing');
     }
 
-    // ✅ Removed deprecated options
     await mongoose.connect(mongoUri);
-
     console.log('✅ MongoDB Connected Successfully');
 
   } catch (error) {
