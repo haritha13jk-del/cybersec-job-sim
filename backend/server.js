@@ -93,13 +93,21 @@ app.use((err, req, res, next) => {
 
 const testMySQL = async () => {
   try {
+    if (!mysqlPool) {
+      console.log('⚠️ MySQL pool not initialized');
+      return;
+    }
+
     const connection = await mysqlPool.getConnection();
     await connection.query('SELECT 1');
     connection.release();
+
     console.log('✅ MySQL Connected Successfully');
+
   } catch (err) {
+    // ❌ DO NOT crash server
     console.error('❌ MySQL Connection Error:', err.message);
-    throw err;
+    console.log('⚠️ Continuing without MySQL...');
   }
 };
 
@@ -109,19 +117,20 @@ const PORT = process.env.PORT || 5000;
 
 const startServer = async () => {
   try {
+    // ✅ MongoDB (required)
     await connectMongoDB();
+
+    // ⚠️ MySQL (optional - don't crash)
     await testMySQL();
 
-    // ✅ IMPORTANT FIX FOR RENDER
     app.listen(PORT, '0.0.0.0', () => {
       console.log('========================================');
       console.log(' CYBERSECURITY JOB SIMULATION SYSTEM');
       console.log('========================================');
-      console.log(` Server running on port ${PORT}`);
-      console.log(' Environment: ' + process.env.NODE_ENV);
-      console.log(' MySQL: Connected');
+      console.log(` Server running on port: ${PORT}`);
+      console.log(` Environment: ${process.env.NODE_ENV}`);
       console.log(' MongoDB: Connected');
-      console.log(' AI: ' + (process.env.GEMINI_API_KEY ? 'Enabled' : 'Disabled'));
+      console.log(' MySQL: Attempted');
       console.log('========================================');
     });
 
