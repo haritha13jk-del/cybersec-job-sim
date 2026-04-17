@@ -1,53 +1,20 @@
 const express = require('express');
 const mongoose = require('mongoose');
 const { authMiddleware } = require('../middleware/auth');
+const UserProgress = require('../models/UserProgress');
 
 const router = express.Router();
-
-/* ================= PROGRESS MODEL ================= */
-const progressSchema = new mongoose.Schema({
-  userId: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
-  scenarioId: Number,
-  score: { type: Number, default: 0 },
-  completed: { type: Boolean, default: false },
-  createdAt: { type: Date, default: Date.now }
-});
-
-// ✅ prevent overwrite crash
-const Progress = mongoose.models.Progress || mongoose.model('Progress', progressSchema);
-
 
 /* ================= GET PROGRESS ================= */
 router.get('/', authMiddleware, async (req, res) => {
   try {
     const userId = req.user.id;
-
-    const progress = await Progress.find({ userId });
-
-    const stats = await Progress.aggregate([
-      { $match: { userId: new mongoose.Types.ObjectId(userId) } },
-      {
-        $group: {
-          _id: "$userId",
-          total_completed: { $sum: { $cond: ["$completed", 1, 0] } },
-          total_score: { $sum: "$score" }
-        }
-      }
-    ]);
-
-    res.json({
-      success: true,
-      progress,
-      stats: stats[0] || { total_completed: 0, total_score: 0 }
-    });
-
+    const progress = await UserProgress.getUserProgress(userId);
+    const stats = await UserProgress.getUserStats(userId);
+    res.json({ success: true, progress, stats });
   } catch (error) {
     console.error('Get progress error:', error.message);
-
-    res.status(500).json({
-      success: false,
-      error: error.message
-    });
+    res.status(500).json({ success: false, error: error.message });
   }
 });
 
@@ -56,30 +23,11 @@ router.get('/', authMiddleware, async (req, res) => {
 router.get('/stats', authMiddleware, async (req, res) => {
   try {
     const userId = req.user.id;
-
-    const stats = await Progress.aggregate([
-      { $match: { userId: new mongoose.Types.ObjectId(userId) } },
-      {
-        $group: {
-          _id: "$userId",
-          total_completed: { $sum: { $cond: ["$completed", 1, 0] } },
-          total_score: { $sum: "$score" }
-        }
-      }
-    ]);
-
-    res.json({
-      success: true,
-      stats: stats[0] || { total_completed: 0, total_score: 0 }
-    });
-
+    const stats = await UserProgress.getUserStats(userId);
+    res.json({ success: true, stats });
   } catch (error) {
     console.error('Get stats error:', error.message);
-
-    res.status(500).json({
-      success: false,
-      error: error.message
-    });
+    res.status(500).json({ success: false, error: error.message });
   }
 });
 
@@ -89,44 +37,56 @@ router.get('/leaderboard', authMiddleware, async (req, res) => {
   try {
     const limit = parseInt(req.query.limit) || 10;
 
-    const leaderboard = await Progress.aggregate([
+    // Get leaderboard from UserProgress model (same one scenarios.js saves to)
+    const UserProgressModel = mongoose.models.UserProgress;
+
+    const leaderboard = await UserProgressModel.aggregate([
+      { $match: { completed: true } },
       {
         $group: {
-          _id: "$userId",
-          total_score: { $sum: "$score" }
+          _id: '$userId',
+          totalScore: { $sum: '$score' },
+          scenariosCompleted: { $sum: 1 },
+          bestScore: { $max: '$score' }
         }
       },
-      { $sort: { total_score: -1 } },
+      { $sort: { totalScore: -1 } },
       { $limit: limit }
     ]);
 
-    // user rank
-    const allRanks = await Progress.aggregate([
-      {
-        $group: {
-          _id: "$userId",
-          total_score: { $sum: "$score" }
-        }
-      },
-      { $sort: { total_score: -1 } }
+    // Try to enrich with usernames by looking up User model
+    const User = mongoose.models.User;
+    const enriched = await Promise.all(leaderboard.map(async (entry, index) => {
+      let username = 'Player';
+      if (User) {
+        try {
+          const user = await User.findById(entry._id).select('username name email');
+          username = user?.username || user?.name || user?.email?.split('@')[0] || 'Player';
+        } catch (e) { /* ignore */ }
+      }
+      return {
+        rank: index + 1,
+        userId: entry._id,
+        username,
+        total_score: entry.totalScore,
+        scenarios_completed: entry.scenariosCompleted,
+        best_score: entry.bestScore
+      };
+    }));
+
+    // Get current user's rank
+    const allRanks = await UserProgressModel.aggregate([
+      { $match: { completed: true } },
+      { $group: { _id: '$userId', totalScore: { $sum: '$score' } } },
+      { $sort: { totalScore: -1 } }
     ]);
+    const userRank = allRanks.findIndex(p => p._id.toString() === req.user.id) + 1 || null;
 
-    const userRank =
-      allRanks.findIndex(p => p._id.toString() === req.user.id) + 1 || null;
-
-    res.json({
-      success: true,
-      leaderboard,
-      userRank
-    });
+    res.json({ success: true, leaderboard: enriched, userRank });
 
   } catch (error) {
     console.error('Leaderboard error:', error.message);
-
-    res.status(500).json({
-      success: false,
-      error: error.message
-    });
+    res.status(500).json({ success: false, error: error.message });
   }
 });
 
