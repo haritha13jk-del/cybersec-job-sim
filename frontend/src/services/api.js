@@ -28,12 +28,20 @@ export const getHint = (data) => API.post("/api/ai/hint", data);
 export const getChatHistory = (scenarioId) =>
   API.get(`/api/ai/history?scenarioId=${scenarioId}`);
 
+export const aiAPI = {
+  sendMessage,
+  getHint,
+  getChatHistory,
+};
+
 
 // ================= SCENARIOS =================
 export const scenarioAPI = {
   getAll: () => API.get("/api/scenarios"),
   getById: (id) => API.get(`/api/scenarios/${id}`),
 };
+
+
 // ================= USER =================
 export const getProfile = () => API.get("/api/users/profile");
 
@@ -42,7 +50,6 @@ export const getProfile = () => API.get("/api/users/profile");
 export const progressAPI = {
   getProgress: () => API.get("/api/progress"),
   updateProgress: (data) => API.post("/api/progress", data),
-
   getStats: () => API.get("/api/progress/stats"),
   getLeaderboard: (limit = 10) =>
     API.get(`/api/leaderboard?limit=${limit}`),
