@@ -1,14 +1,15 @@
 import axios from "axios";
 
 const API_BASE_URL =
-  process.env.REACT_APP_API_URL || "https://cybersec-job-sim.onrender.com";
+  process.env.REACT_APP_API_URL ||
+  "https://cybersec-job-sim.onrender.com";
 
-// ✅ Create axios instance
+// Create axios instance
 const api = axios.create({
-  baseURL: API_BASE_URL,
+  baseURL: `${API_BASE_URL}/api`,
 });
 
-// ✅ Attach token automatically to every request
+// Attach token automatically
 api.interceptors.request.use((config) => {
   const token = localStorage.getItem("token");
 
@@ -21,25 +22,25 @@ api.interceptors.request.use((config) => {
 
 // ================= AUTH =================
 export const authAPI = {
-  login: (data) => api.post("/api/auth/login", data),
-  register: (data) => api.post("/api/auth/register", data),
+  login: (data) => api.post("/auth/login", data),
+  register: (data) => api.post("/auth/register", data),
 };
 
 // ================= SCENARIOS =================
 export const scenarioAPI = {
-  getAll: () => api.get("/api/scenarios"),
-  getById: (id) => api.get(`/api/scenarios/${id}`),
+  getAll: () => api.get("/scenarios"),
+  getById: (id) => api.get(`/scenarios/${id}`),
 };
 
 // ================= PROGRESS =================
 export const progressAPI = {
-  getUserProgress: () => api.get("/api/progress"),
-  updateProgress: (data) => api.post("/api/progress", data),
+  getUserProgress: () => api.get("/progress"),
+  updateProgress: (data) => api.post("/progress", data),
 };
 
 // ================= AI =================
 export const aiAPI = {
-  ask: (data) => api.post("/api/ai", data),
+  ask: (data) => api.post("/ai", data),
 };
 
 export default api;
