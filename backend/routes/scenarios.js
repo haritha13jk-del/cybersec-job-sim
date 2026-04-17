@@ -7,7 +7,6 @@ const { authMiddleware, roleMiddleware } = require('../middleware/auth');
 const router = express.Router();
 
 /* ================= GET ALL SCENARIOS ================= */
-
 router.get('/', authMiddleware, async (req, res) => {
   try {
     const { role, difficulty, category } = req.query;
@@ -26,7 +25,7 @@ router.get('/', authMiddleware, async (req, res) => {
     });
 
   } catch (error) {
-    console.error('❌ Get scenarios error:', error.message);
+    console.error('Get scenarios error:', error.message);
     res.status(500).json({
       success: false,
       error: error.message
@@ -36,7 +35,6 @@ router.get('/', authMiddleware, async (req, res) => {
 
 
 /* ================= GET BY ROLE ================= */
-
 router.get('/role/:role', authMiddleware, async (req, res) => {
   try {
     const { role } = req.params;
@@ -58,7 +56,7 @@ router.get('/role/:role', authMiddleware, async (req, res) => {
     });
 
   } catch (error) {
-    console.error('❌ Get scenarios by role error:', error.message);
+    console.error('Get scenarios by role error:', error.message);
     res.status(500).json({
       success: false,
       error: error.message
@@ -68,7 +66,6 @@ router.get('/role/:role', authMiddleware, async (req, res) => {
 
 
 /* ================= RANDOM SCENARIO ================= */
-
 router.get('/random/:role/:difficulty', authMiddleware, async (req, res) => {
   try {
     const { role, difficulty } = req.params;
@@ -88,7 +85,7 @@ router.get('/random/:role/:difficulty', authMiddleware, async (req, res) => {
     });
 
   } catch (error) {
-    console.error('❌ Random scenario error:', error.message);
+    console.error('Random scenario error:', error.message);
     res.status(500).json({
       success: false,
       error: error.message
@@ -98,10 +95,9 @@ router.get('/random/:role/:difficulty', authMiddleware, async (req, res) => {
 
 
 /* ================= GET SINGLE SCENARIO ================= */
-
 router.get('/:id', authMiddleware, async (req, res) => {
   try {
-    const scenarioId = parseInt(req.params.id);
+    const scenarioId = Number(req.params.id);
 
     if (isNaN(scenarioId)) {
       return res.status(400).json({
@@ -119,18 +115,18 @@ router.get('/:id', authMiddleware, async (req, res) => {
       });
     }
 
-    // 🔐 Safe logging (don't break main flow)
+    // safe logging
     try {
       await ActivityLog.logActivity({
         userId: req.user.id,
-        scenarioId: scenario.id,
+        scenarioId,
         action: 'START_SCENARIO',
         details: { title: scenario.title },
         ipAddress: req.ip,
         userAgent: req.headers['user-agent']
       });
-    } catch (logErr) {
-      console.error("⚠️ Activity log error:", logErr.message);
+    } catch (e) {
+      console.error("Activity log error:", e.message);
     }
 
     res.json({
@@ -139,7 +135,7 @@ router.get('/:id', authMiddleware, async (req, res) => {
     });
 
   } catch (error) {
-    console.error('❌ Get scenario error:', error.message);
+    console.error('Get scenario error:', error.message);
     res.status(500).json({
       success: false,
       error: error.message
@@ -149,10 +145,9 @@ router.get('/:id', authMiddleware, async (req, res) => {
 
 
 /* ================= SUBMIT SOLUTION ================= */
-
 router.post('/:id/submit', authMiddleware, async (req, res) => {
   try {
-    const scenarioId = parseInt(req.params.id);
+    const scenarioId = Number(req.params.id);
     const userId = req.user.id;
     const { actions, timeTaken = 0, hintsUsed = 0 } = req.body;
 
@@ -163,7 +158,7 @@ router.post('/:id/submit', authMiddleware, async (req, res) => {
       });
     }
 
-    if (!actions || !Array.isArray(actions)) {
+    if (!Array.isArray(actions)) {
       return res.status(400).json({
         success: false,
         error: 'Actions must be an array'
@@ -193,9 +188,7 @@ router.post('/:id/submit', authMiddleware, async (req, res) => {
       feedback.push({
         action,
         correct: isCorrect,
-        message: isCorrect
-          ? 'Correct action!'
-          : 'This action is not optimal'
+        message: isCorrect ? 'Correct action!' : 'Not optimal'
       });
     });
 
@@ -205,11 +198,9 @@ router.post('/:id/submit', authMiddleware, async (req, res) => {
 
     let finalScore = Math.round((percentage / 100) * maxScore);
 
-    // penalty
     finalScore -= hintsUsed * 5;
     finalScore = Math.max(0, finalScore);
 
-    // bonus
     const allCorrect =
       correctCount === correctActions.length &&
       actions.length === correctActions.length;
@@ -220,17 +211,21 @@ router.post('/:id/submit', authMiddleware, async (req, res) => {
 
     const missingActions = correctActions.filter(a => !actions.includes(a));
 
-    // ✅ Save progress
-    await UserProgress.saveProgress(userId, scenarioId, {
-      score: finalScore,
-      maxScore,
-      timeTaken,
-      actionsTaken: actions,
-      hintsUsed,
-      completed: true
-    });
+    // 🚨 IMPORTANT SAFETY FIX
+    try {
+      await UserProgress.saveProgress(userId, scenarioId, {
+        score: finalScore,
+        maxScore,
+        timeTaken,
+        actionsTaken: actions,
+        hintsUsed,
+        completed: true
+      });
+    } catch (e) {
+      console.error("Progress save error:", e.message);
+    }
 
-    // 🔐 Safe logging
+    // safe log
     try {
       await ActivityLog.logActivity({
         userId,
@@ -240,8 +235,8 @@ router.post('/:id/submit', authMiddleware, async (req, res) => {
         ipAddress: req.ip,
         userAgent: req.headers['user-agent']
       });
-    } catch (logErr) {
-      console.error("⚠️ Activity log error:", logErr.message);
+    } catch (e) {
+      console.error("Activity log error:", e.message);
     }
 
     res.json({
@@ -261,7 +256,7 @@ router.post('/:id/submit', authMiddleware, async (req, res) => {
     });
 
   } catch (error) {
-    console.error('❌ Submit error:', error.message);
+    console.error('Submit error:', error.message);
     res.status(500).json({
       success: false,
       error: error.message
@@ -271,7 +266,6 @@ router.post('/:id/submit', authMiddleware, async (req, res) => {
 
 
 /* ================= CREATE SCENARIO ================= */
-
 router.post(
   '/',
   authMiddleware,
@@ -287,7 +281,7 @@ router.post(
       });
 
     } catch (error) {
-      console.error('❌ Create scenario error:', error.message);
+      console.error('Create scenario error:', error.message);
       res.status(500).json({
         success: false,
         error: error.message
