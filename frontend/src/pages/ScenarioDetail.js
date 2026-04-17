@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { scenarioAPI, aiAPI } from '../services/api';
-import Navbar from '../components/Navbar';
 
 export default function ScenarioDetail() {
   const { id } = useParams();
@@ -68,7 +67,7 @@ export default function ScenarioDetail() {
     setChatMessages(prev => [...prev, { role: 'user', content: userMessage }]);
     setChatLoading(true);
     try {
-      const res = await aiAPI.chat({ message: userMessage, scenarioId: parseInt(id) });
+      const res = await aiAPI.chat({ message: userMessage, scenarioId: id });
       setChatMessages(prev => [...prev, { role: 'ai', content: res.data.message }]);
     } catch (err) {
       setChatMessages(prev => [...prev, { role: 'ai', content: 'Sorry, I am having trouble responding right now.' }]);
@@ -80,7 +79,7 @@ export default function ScenarioDetail() {
   const handleHint = async () => {
     setChatLoading(true);
     try {
-      const res = await aiAPI.getHint(parseInt(id));
+      const res = await aiAPI.getHint(id);
       setHintsUsed(prev => prev + 1);
       setChatMessages(prev => [...prev, { role: 'ai', content: 'Hint #' + res.data.hintNumber + ': ' + res.data.hint }]);
       setActiveTab('ai');
@@ -119,16 +118,15 @@ export default function ScenarioDetail() {
     return { bg: '#fff5f5', color: '#742a2a', border: '#feb2b2' };
   };
 
+  // NO <Navbar /> here — App.js renders it globally
   if (loading) return (
-    <div style={{ minHeight: '100vh', background: '#f0f4f8' }}>
-      <Navbar />
+    <div style={{ minHeight: '100vh', background: '#f0f4f8', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
       <div className="loading">Loading scenario...</div>
     </div>
   );
 
   if (!scenario) return (
-    <div style={{ minHeight: '100vh', background: '#f0f4f8' }}>
-      <Navbar />
+    <div style={{ minHeight: '100vh', background: '#f0f4f8', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
       <div className="loading">Scenario not found</div>
     </div>
   );
@@ -147,7 +145,6 @@ export default function ScenarioDetail() {
 
   return (
     <div style={{ minHeight: '100vh', background: '#f0f4f8' }}>
-      <Navbar />
       <div className="container" style={{ padding: '24px', maxWidth: '1300px', margin: '0 auto' }}>
 
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
@@ -238,7 +235,7 @@ export default function ScenarioDetail() {
                     <div style={{ marginBottom: '8px' }}>
                       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px' }}>
                         <h3 style={{ fontSize: '15px', fontWeight: '800', color: '#1a202c' }}>
-                          Response Actions — Select All That Apply
+                          Response Actions &mdash; Select All That Apply
                         </h3>
                         <span style={{ fontSize: '12px', color: '#718096', background: '#f7fafc', padding: '4px 10px', borderRadius: '6px', border: '1px solid #e2e8f0', fontWeight: '600' }}>
                           {selectedActions.length} selected
@@ -276,7 +273,7 @@ export default function ScenarioDetail() {
                                 border: '2px solid ' + (isSelected ? '#3182ce' : '#e2e8f0'),
                                 transition: 'all 0.15s'
                               }}>
-                                {isSelected ? 'v' : letter}
+                                {isSelected ? '✓' : letter}
                               </div>
                               <span style={{ fontSize: '14px', color: isSelected ? '#1a202c' : '#4a5568', fontWeight: isSelected ? '600' : '400', flex: 1 }}>
                                 {label}
