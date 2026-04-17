@@ -30,11 +30,10 @@ export const getChatHistory = (scenarioId) =>
 
 
 // ================= SCENARIOS =================
-export const getScenarios = () => API.get("/api/scenarios");
-export const getScenarioById = (id) =>
-  API.get(`/api/scenarios/${id}`);
-
-
+export const scenarioAPI = {
+  getAll: () => API.get("/api/scenarios"),
+  getById: (id) => API.get(`/api/scenarios/${id}`),
+};
 // ================= USER =================
 export const getProfile = () => API.get("/api/users/profile");
 
