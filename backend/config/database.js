@@ -1,61 +1,23 @@
-const mysql = require('mysql2/promise');
+const { Pool } = require('pg');
 const mongoose = require('mongoose');
 require('dotenv').config();
 
-/* ================= MYSQL CONNECTION ================= */
+/* ================= POSTGRESQL CONNECTION ================= */
 
-let mysqlPool;
+const pool = new Pool({
+  connectionString: process.env.DATABASE_URL,
+  ssl: {
+    rejectUnauthorized: false,
+  },
+});
 
-try {
-  if (!process.env.MYSQL_URL) {
-    throw new Error('MYSQL_URL not found in environment variables');
-  }
-
-  const dbUrl = new URL(process.env.MYSQL_URL);
-
-  mysqlPool = mysql.createPool({
-    host: dbUrl.hostname,
-    user: dbUrl.username,
-    password: dbUrl.password,
-    database: dbUrl.pathname.replace('/', ''),
-    port: dbUrl.port,
-
-    waitForConnections: true,
-    connectionLimit: 2,          // 🔥 important (reduce load)
-    queueLimit: 0,
-    connectTimeout: 10000,
-
-    ssl: {
-      rejectUnauthorized: false
-    }
-  });
-
-  console.log('✅ MySQL Pool Created Successfully');
-
-} catch (error) {
-  console.error('❌ MySQL Pool Creation Error:', error.message);
-}
-
-
-/* ================= MYSQL TEST ================= */
-
-const testMySQL = async () => {
+const connectPostgres = async () => {
   try {
-    if (!mysqlPool) {
-      console.error('❌ MySQL Pool not initialized');
-      return;
-    }
-
-    const connection = await mysqlPool.getConnection();
-    await connection.query('SELECT 1');
-    connection.release();
-
-    console.log('✅ MySQL Connected Successfully');
-
+    const client = await pool.connect();
+    console.log('✅ PostgreSQL Connected Successfully');
+    client.release();
   } catch (error) {
-    // ⚠️ DO NOT crash server
-    console.error('❌ MySQL Connection Error:', error.message);
-    console.log('⚠️ Continuing without MySQL (temporary)');
+    console.error('❌ PostgreSQL Connection Error:', error.message);
   }
 };
 
@@ -73,16 +35,14 @@ const connectMongoDB = async () => {
     await mongoose.connect(mongoUri);
 
     console.log('✅ MongoDB Connected Successfully');
-
   } catch (error) {
     console.error('❌ MongoDB Connection Error:', error.message);
-    process.exit(1); // MongoDB is critical → stop server
+    process.exit(1);
   }
 };
 
-
 module.exports = {
-  mysqlPool,
-  testMySQL,
-  connectMongoDB
+  pool,
+  connectPostgres,
+  connectMongoDB,
 };

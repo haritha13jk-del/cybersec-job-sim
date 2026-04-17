@@ -5,8 +5,10 @@ const morgan = require('morgan');
 const rateLimit = require('express-rate-limit');
 require('dotenv').config();
 
-const { mysqlPool, connectMongoDB } = require('./config/database');
+// ✅ PostgreSQL + MongoDB
+const { pool, connectMongoDB } = require('./config/database');
 
+// ✅ Routes
 const authRoutes = require('./routes/auth');
 const scenarioRoutes = require('./routes/scenarios');
 const progressRoutes = require('./routes/progress');
@@ -21,7 +23,6 @@ const corsOptions = {
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With'],
-  optionsSuccessStatus: 200
 };
 
 app.use(cors(corsOptions));
@@ -41,8 +42,8 @@ const limiter = rateLimit({
   max: parseInt(process.env.RATE_LIMIT_MAX) || 100,
   message: {
     success: false,
-    error: 'Too many requests, please try again later.'
-  }
+    error: 'Too many requests, please try again later.',
+  },
 });
 
 app.use('/api/', limiter);
@@ -52,7 +53,7 @@ app.use('/api/', limiter);
 app.get('/', (req, res) => {
   res.json({
     success: true,
-    message: 'Cybersecurity Job Simulation Backend Running'
+    message: 'Cybersecurity Job Simulation Backend Running',
   });
 });
 
@@ -67,8 +68,6 @@ app.get('/api/health', (req, res) => {
   res.json({
     success: true,
     status: 'OK',
-    timestamp: new Date().toISOString(),
-    environment: process.env.NODE_ENV
   });
 });
 
@@ -77,7 +76,7 @@ app.get('/api/health', (req, res) => {
 app.use((req, res) => {
   res.status(404).json({
     success: false,
-    error: 'Endpoint not found'
+    error: 'Endpoint not found',
   });
 });
 
@@ -85,31 +84,9 @@ app.use((err, req, res, next) => {
   console.error('Server error:', err.message);
   res.status(err.status || 500).json({
     success: false,
-    error: err.message || 'Internal server error'
+    error: err.message || 'Internal server error',
   });
 });
-
-/* ================= MYSQL TEST ================= */
-
-const testMySQL = async () => {
-  try {
-    if (!mysqlPool) {
-      console.log('⚠️ MySQL pool not initialized');
-      return;
-    }
-
-    const connection = await mysqlPool.getConnection();
-    await connection.query('SELECT 1');
-    connection.release();
-
-    console.log('✅ MySQL Connected Successfully');
-
-  } catch (err) {
-    // ❌ DO NOT crash server
-    console.error('❌ MySQL Connection Error:', err.message);
-    console.log('⚠️ Continuing without MySQL...');
-  }
-};
 
 /* ================= SERVER START ================= */
 
@@ -117,20 +94,18 @@ const PORT = process.env.PORT || 5000;
 
 const startServer = async () => {
   try {
-    // ✅ MongoDB (required)
+    // ✅ MongoDB
     await connectMongoDB();
 
-    // ⚠️ MySQL (optional - don't crash)
-    await testMySQL();
+    // ✅ Test PostgreSQL manually
+    await pool.query('SELECT 1');
+    console.log('✅ PostgreSQL Connected');
 
     app.listen(PORT, '0.0.0.0', () => {
       console.log('========================================');
-      console.log(' CYBERSECURITY JOB SIMULATION SYSTEM');
-      console.log('========================================');
-      console.log(` Server running on port: ${PORT}`);
-      console.log(` Environment: ${process.env.NODE_ENV}`);
+      console.log(' Server running on port:', PORT);
       console.log(' MongoDB: Connected');
-      console.log(' MySQL: Attempted');
+      console.log(' PostgreSQL: Connected');
       console.log('========================================');
     });
 
