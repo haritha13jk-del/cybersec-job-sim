@@ -1,38 +1,19 @@
 import React from 'react';
-import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 
 import Login from './pages/Login';
 import Register from './pages/Register';
 import Dashboard from './pages/Dashboard';
 import Scenarios from './pages/Scenarios';
-import ScenarioDetail from './pages/ScenarioDetail';
-import Leaderboard from './pages/Leaderboard';
-import Profile from './pages/Profile';
-
-import './App.css';
-
-// 🔐 Protected Route
-const PrivateRoute = ({ children }) => {
-  const token = localStorage.getItem('token');
-  return token ? children : <Navigate to="/login" />;
-};
 
 function App() {
   return (
     <Router>
       <Routes>
-
-        {/* Public Routes */}
+        <Route path="/" element={<Dashboard />} />
         <Route path="/login" element={<Login />} />
         <Route path="/register" element={<Register />} />
-
-        {/* Protected Routes */}
-        <Route path="/" element={<PrivateRoute><Dashboard /></PrivateRoute>} />
-        <Route path="/scenarios" element={<PrivateRoute><Scenarios /></PrivateRoute>} />
-        <Route path="/scenarios/:id" element={<PrivateRoute><ScenarioDetail /></PrivateRoute>} />
-        <Route path="/leaderboard" element={<PrivateRoute><Leaderboard /></PrivateRoute>} />
-        <Route path="/profile" element={<PrivateRoute><Profile /></PrivateRoute>} />
-
+        <Route path="/scenarios" element={<Scenarios />} />
       </Routes>
     </Router>
   );
