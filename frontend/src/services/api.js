@@ -1,68 +1,31 @@
-import axios from 'axios';
+import axios from "axios";
 
-// ✅ PRODUCTION BACKEND URL (Railway)
-const API_URL = 'https://cybersec-job-sim.onrender.com';
-
-const api = axios.create({
-  baseURL: API_URL,
-  headers: {
-    'Content-Type': 'application/json'
-  }
+const API = axios.create({
+  baseURL: process.env.REACT_APP_API_URL,
 });
 
-// ✅ Attach token to every request
-api.interceptors.request.use((config) => {
-  const token = localStorage.getItem('token');
-  if (token) {
-    config.headers.Authorization = `Bearer ${token}`;
-  }
-  return config;
+// Attach token
+API.interceptors.request.use((req) => {
+  const token = localStorage.getItem("token");
+  if (token) req.headers.Authorization = `Bearer ${token}`;
+  return req;
 });
 
-// ✅ Handle unauthorized errors
-api.interceptors.response.use(
-  (response) => response,
-  (error) => {
-    if (error.response?.status === 401) {
-      localStorage.removeItem('token');
-      localStorage.removeItem('user');
-      window.location.href = '/login';
-    }
-    return Promise.reject(error);
-  }
-);
 
-// 🔐 AUTH APIs
-export const authAPI = {
-  register: (data) => api.post('/auth/register', data),
-  login: (data) => api.post('/auth/login', data),
-  getMe: () => api.get('/auth/me'),
-  updateProfile: (data) => api.put('/auth/profile', data)
-};
+// ✅ AUTH
+export const loginUser = (data) => API.post("/api/auth/login", data);
+export const registerUser = (data) => API.post("/api/auth/register", data);
 
-// 📚 SCENARIO APIs
-export const scenarioAPI = {
-  getAll: (filters) => api.get('/scenarios', { params: filters }),
-  getById: (id) => api.get(`/scenarios/${id}`),
-  getByRole: (role) => api.get(`/scenarios/role/${role}`),
-  submit: (id, data) => api.post(`/scenarios/${id}/submit`, data),
-  getRandom: (role, difficulty) =>
-    api.get(`/scenarios/random/${role}/${difficulty}`)
-};
+// ✅ AI
+export const sendMessage = (data) => API.post("/api/ai/chat", data);
+export const getHint = (data) => API.post("/api/ai/hint", data);
+export const getChatHistory = (scenarioId) =>
+  API.get(`/api/ai/history?scenarioId=${scenarioId}`);
 
-// 📊 PROGRESS APIs
-export const progressAPI = {
-  getProgress: () => api.get('/progress'),
-  getStats: () => api.get('/progress/stats'),
-  getLeaderboard: (limit) =>
-    api.get('/progress/leaderboard', { params: { limit } })
-};
+// ✅ SCENARIOS
+export const getScenarios = () => API.get("/api/scenarios");
 
-// 🤖 AI APIs
-export const aiAPI = {
-  chat: (data) => api.post('/ai/chat', data),
-  getHint: (scenarioId) => api.post('/ai/hint', { scenarioId }),
-  getHistory: (params) => api.get('/ai/history', { params })
-};
+// ✅ USER
+export const getProfile = () => API.get("/api/users/profile");
 
-export default api;
+export default API;
