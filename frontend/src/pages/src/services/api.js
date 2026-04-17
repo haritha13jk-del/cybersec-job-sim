@@ -1,14 +1,22 @@
 import axios from "axios";
 
-// ✅ Vercel-safe API base URL
 const API_BASE_URL =
   process.env.REACT_APP_API_URL || "https://cybersec-job-sim.onrender.com";
 
+// ✅ Create axios instance
 const api = axios.create({
   baseURL: API_BASE_URL,
-  headers: {
-    "Content-Type": "application/json",
-  },
+});
+
+// ✅ Attach token automatically to every request
+api.interceptors.request.use((config) => {
+  const token = localStorage.getItem("token");
+
+  if (token) {
+    config.headers.Authorization = `Bearer ${token}`;
+  }
+
+  return config;
 });
 
 // ================= AUTH =================
