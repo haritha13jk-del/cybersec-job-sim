@@ -1,0 +1,9 @@
+{
+  "name": "cybersec-job-sim",
+  "version": "1.0.0",
+  "description": "Cybersecurity Job Simulation Project Workspace",
+  "main": "server.js",
+  "dependencies": {
+    "express": "^4.19.2"
+  }
+}
